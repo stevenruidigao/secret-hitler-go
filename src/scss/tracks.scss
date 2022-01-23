@@ -1,0 +1,558 @@
+.sixteen.wide.column.tracks-container {
+	height: 68vw;
+	max-height: 440px;
+}
+.tracks-container {
+	background-color: #52393b;
+	max-width: 650px;
+	padding: 0 !important;
+	overflow: hidden !important;
+	position: relative;
+	.game-name {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		z-index: 105;
+		color: var(--theme-text-2);
+		background: var(--theme-secondary);
+		font-size: 16px;
+		padding: 4px;
+		opacity: 1;
+		border: 2px solid lightblue;
+	}
+
+	.timed-mode-counter {
+		position: absolute;
+		bottom: 10px;
+		z-index: 105;
+		right: 15px;
+		background: var(--theme-background-2);
+		padding: 5px;
+		color: #be0804;
+		font-weight: bold;
+		border: 1px dashed #be0804;
+		width: 190px;
+		text-align: center;
+		cursor: pointer;
+	}
+
+	.icon.hourglass.half.timer {
+		opacity: 1 !important;
+		position: absolute;
+		bottom: 5px;
+		right: 2px;
+		z-index: 105;
+		color: var(--theme-text-2) !important;
+		background: #034f61;
+		font-size: 16px !important;
+		padding: 4px;
+		opacity: 1;
+		width: 28px;
+		height: 30px;
+		border: 2px solid lightblue;
+		cursor: pointer;
+
+		&.enabled {
+			color: #db2828 !important;
+		}
+	}
+	.icon.repeat,
+	.icon.remove {
+		opacity: 1 !important;
+		position: absolute;
+		bottom: 5px;
+		left: 2px;
+		z-index: 105;
+		color: var(--theme-text-2) !important;
+		background: #034f61;
+		font-size: 16px !important;
+		padding: 4px;
+		opacity: 1;
+		width: 28px;
+		height: 30px;
+		border: 2px solid lightblue;
+		cursor: pointer;
+
+		&.enabled {
+			color: #db2828 !important;
+		}
+	}
+	.player-count {
+		// gameuid not used since routing update displays it in url
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		z-index: 105;
+		color: var(--theme-text-2);
+		background: var(--theme-secondary);
+		font-size: 16px;
+		padding: 4px;
+		opacity: 1;
+		border: 2px solid lightblue;
+	}
+	.option-icons {
+		position: absolute;
+		z-index: 108;
+		right: 95px;
+		left: auto;
+		top: 10px;
+		background: var(--theme-secondary);
+		border: 2px solid lightblue;
+		padding: 4px;
+		height: 31px;
+		display: flex;
+		flex-direction: row-reverse;
+		width: auto;
+	}
+	.tracks {
+		transition: all 1s;
+		position: relative;
+		background-color: var(--theme-background-2);
+
+		.electiontracker {
+			position: absolute;
+			width: 3.85%;
+			height: 5.68%;
+			background-color: #2f2fbe;
+			border-radius: 50%;
+			top: 41.36%;
+			left: 32.6%;
+			transition: all 2s;
+		}
+		.electiontracker.fail1 {
+			left: 42.46%;
+		}
+		.electiontracker.fail2 {
+			left: 52.15%;
+		}
+		.electiontracker.fail3 {
+			left: 62%;
+		}
+		.track-flipper {
+			//height: 220px;
+			padding-top: 34%;
+			transition-duration: 1s;
+			transition-property: transform;
+			transform-style: preserve-3d;
+			position: relative;
+			-webkit-backface-visibility: hidden; // thanks osx safari
+			backface-visibility: hidden;
+		}
+		.track {
+			transform: rotateX(0deg);
+			background-size: contain;
+			background-repeat: no-repeat;
+			position: absolute;
+			top: 0;
+			left: 0;
+			//height: 220px;
+			padding-top: 34%;
+			width: 100%;
+		}
+		.top-track-front {
+			background-image: url('../../public/images/tracks/liberaltrack_front.png');
+			background-position: center;
+			-webkit-backface-visibility: hidden;
+			backface-visibility: hidden;
+		}
+		.top-track-back {
+			-webkit-backface-visibility: hidden;
+			backface-visibility: hidden;
+			transform: rotateX(180deg);
+			background-image: url('../../public/images/tracks/liberaltrack.png');
+		}
+		.bottom-track-front {
+			background-image: url('../../public/images/tracks/fascisttrack_front.png');
+			background-position: center;
+			-webkit-backface-visibility: hidden;
+			backface-visibility: hidden;
+		}
+		.bottom-track-back {
+			-webkit-backface-visibility: hidden;
+			backface-visibility: hidden;
+			transform: rotateX(180deg);
+		}
+		.track0 {
+			background-image: url('../../public/images/tracks/fascisttrack56.png');
+		}
+		.track1 {
+			background-image: url('../../public/images/tracks/fascisttrack78.png');
+		}
+		.track2 {
+			background-image: url('../../public/images/tracks/fascisttrack910.png');
+		}
+		.remove.icon {
+			position: absolute;
+			top: 10px;
+			right: 0;
+			font-size: 30px;
+			cursor: pointer;
+		}
+		// custom image stuff
+		.custom-fastrack-base {
+			background-image: url('../../public/images/customtracks/fasTrack.png');
+		}
+		.custom-fastrack-powerslot {
+			width: 90px;
+			height: 120px;
+			left: 0px;
+			top: 0px;
+			position: absolute;
+		}
+		.custom-fastrack-vetozone {
+			background-image: url('../../public/images/customtracks/vetoZone.png');
+		}
+		.custom-fastrack-vetozone-light {
+			background-image: url('../../public/images/customtracks/vetoZoneLight.png');
+		}
+	}
+}
+
+.tracks.blurred {
+	filter: saturate(60%);
+	opacity: 0.3;
+}
+.enactedpolicies-container.blurred {
+	opacity: 0.3;
+}
+.help-message {
+	text-align: center;
+	position: absolute;
+	top: 55px;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	font-size: 20px;
+	z-index: 3;
+	text-shadow: 0px 0px 7px var(--theme-background-1), 0px 0px 7px var(--theme-background-1), 0px 0px 7px var(--theme-background-1);
+	.secondary-message {
+		font-size: 15px;
+		margin-top: 5px;
+	}
+	span {
+		font-weight: bold;
+	}
+}
+.help-message.voting {
+	.select {
+		color: lightgreen;
+	}
+	.deselect {
+		color: red;
+	}
+}
+.help-message.pres-select {
+	span {
+		color: red;
+	}
+	.secondary-message {
+		span {
+			color: lightgreen;
+		}
+	}
+}
+.help-message.chanc-select {
+	top: 70px;
+	span {
+		color: lightgreen;
+	}
+}
+.help-message.veto {
+	top: 70px;
+	span {
+		color: red;
+	}
+}
+.cardflinger-container {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+}
+.cardflinger-card-container {
+	position: absolute;
+	top: 130px;
+	left: -140px;
+	width: 20%;
+	height: 40.5%;
+	z-index: 3;
+	transition-property: all;
+	transition-delay: 0.3s;
+	transition-duration: 1s;
+	transform-style: preserve-3d;
+	max-height: 165px;
+	max-width: 120px;
+}
+.cardflinger-card {
+	background-size: contain;
+	background-repeat: no-repeat;
+	height: 167px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+.cardflinger-card.back {
+	transform: rotateY(180deg);
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+	cursor: pointer;
+}
+.cardflinger-card-container.middle-far-left.active {
+	left: 15%;
+}
+.cardflinger-card-container.middle-center.active {
+	left: 45%;
+}
+.cardflinger-card-container.middle-far-right.active {
+	left: 75%;
+}
+.cardflinger-card-container.middle-left.active {
+	left: 30% !important;
+}
+.cardflinger-card-container.middle-right.active {
+	left: 60% !important;
+}
+.cardflinger-card.ballot {
+	background-image: url('../../public/images/cards/ballot-l.png');
+}
+.cardflinger-card.nein {
+	background-image: url('../../public/images/cards/nein-l.png');
+}
+.cardflinger-card.ja {
+	background-image: url('../../public/images/cards/ja-l.png');
+}
+.cardflinger-card.policy {
+	background-image: url('../../public/images/cards/policy-l.png');
+}
+.cardflinger-card.liberalp {
+	background-image: url('../../public/images/cards/liberalp-l.png');
+}
+.cardflinger-card.fascistp {
+	background-image: url('../../public/images/cards/fascistp-l.png');
+}
+.cardflinger-card-container.middle-far-right.hovered,
+.cardflinger-card-container.middle-center.hovered,
+.cardflinger-card-container.middle-far-left.hovered {
+	.cardflinger-card.back::before {
+		content: '\f00d';
+		font-size: 50px;
+		font-family: Icons;
+		color: red;
+	}
+}
+.cardflinger-card-container.middle-far-right.not-hovered,
+.cardflinger-card-container.middle-center.not-hovered,
+.cardflinger-card-container.middle-far-left.not-hovered {
+	.cardflinger-card.back::before {
+		content: '\f00c';
+		font-size: 50px;
+		font-family: Icons;
+		color: lightgreen;
+	}
+}
+.cardflinger-card-container.middle-left.hovered,
+.cardflinger-card-container.middle-right.hovered {
+	.cardflinger-card.back::before {
+		content: '\f00c';
+		font-size: 50px;
+		font-family: Icons;
+		color: lightgreen;
+	}
+}
+.cardflinger-card-container.middle-left.not-hovered,
+.cardflinger-card-container.middle-left.hovered.selected,
+.cardflinger-card-container.middle-right.not-hovered,
+.cardflinger-card-container.middle-right.hovered.selected {
+	.cardflinger-card.back::before {
+		content: '\f00d';
+		font-size: 50px;
+		font-family: Icons;
+		color: red;
+	}
+}
+.enactedpolicies-card-container {
+	position: absolute;
+	top: 130px;
+	left: -140px;
+	width: 13.85%;
+	height: 28.5%; //167px
+	z-index: 2;
+	transition-property: left, top, width, height, transform;
+	transition-delay: 0.5s, 0.5s, 3s, 3s, 1s;
+	transition-duration: 2s, 2s, 3s, 3s, 1s;
+	transform-style: preserve-3d;
+	box-shadow: 0px 0px 4px 3px var(--theme-text-3);
+}
+.enactedpolicies-card {
+	background-size: contain;
+	background-repeat: no-repeat;
+	height: 100%;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+.enactedpolicies-card.back {
+	transform: rotateY(180deg);
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+	cursor: pointer;
+}
+.enactedpolicies-card.front {
+	background-image: url('../../public/images/cards/policy-l.png');
+}
+.enactedpolicies-card.back.liberal {
+	background-image: url('../../public/images/cards/liberalp-l.png');
+}
+.enactedpolicies-card.back.fascist {
+	background-image: url('../../public/images/cards/fascistp-l.png');
+}
+.enactedpolicies-card-container.middle {
+	left: 40%;
+	top: 30%;
+}
+.enactedpolicies-card-container.inplace {
+	width: 13.85%;
+	background-size: contain;
+	//height: 23.8%;
+}
+.enactedpolicies-card-container.liberal1 {
+	left: 14.15%; //95px
+	top: 10.91%; //48px
+}
+.enactedpolicies-card-container.liberal2 {
+	left: 28.5%;
+	top: 10.91%;
+}
+.enactedpolicies-card-container.liberal3 {
+	left: 42.85%;
+	top: 10.91%;
+}
+.enactedpolicies-card-container.liberal4 {
+	left: 57.5%;
+	top: 10.91%;
+}
+.enactedpolicies-card-container.liberal5 {
+	left: 71.85%;
+	top: 10.91%;
+}
+.enactedpolicies-card-container.fascist1 {
+	left: 7.1%;
+	top: 61%;
+}
+.enactedpolicies-card-container.fascist2 {
+	left: 21.5%;
+	top: 61%;
+}
+.enactedpolicies-card-container.fascist3 {
+	left: 35.9%;
+	top: 61%;
+}
+.enactedpolicies-card-container.fascist4 {
+	left: 50.3%;
+	top: 61%;
+}
+.enactedpolicies-card-container.fascist5 {
+	left: 64.7%;
+	top: 61%;
+}
+.enactedpolicies-card-container.fascist6 {
+	left: 79.1%;
+	top: 61%;
+}
+
+.flipped {
+	transform: rotateX(180deg);
+}
+
+.flippedY {
+	transform: rotateY(180deg);
+}
+
+.cardflinger-card-container.notifier::after {
+	content: '';
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	position: absolute;
+	animation: fadeIn 0.7s infinite alternate;
+	cursor: pointer;
+}
+
+.cardflinger-card-container.notification::after {
+	box-shadow: 0 0 26px 6px #fbbd08;
+}
+
+// .cardflinger-card-container.selected::after {
+// 	box-shadow: 0 0 2px 14px lightgreen;
+// 	animation-duration: 0s;
+// }
+
+@keyframes expand-select {
+	from {
+		top: 50%;
+		left: 50%;
+		height: 0;
+		width: 0;
+	}
+	to {
+		top: 0;
+		left: 0;
+		height: 100%;
+		width: 100%;
+	}
+}
+
+.cardflinger-card-container.expanding::after {
+	box-shadow: 0 0 2px 14px lightgreen;
+	animation: 2s ease-in expand-select;
+}
+
+.cardflinger-card-container.selected::after {
+	box-shadow: 0 0 2px 14px lightgreen;
+	animation-duration: 0s;
+}
+
+.cardflinger-card-container.selected.discard::after {
+	box-shadow: 0 0 2px 14px red;
+	animation-duration: 0s;
+}
+
+.cardflinger-card-container.expanding.discard::after {
+	box-shadow: 0 0 2px 14px red;
+}
+
+.cardflinger-card-container.selected.display-help-icons {
+	left: 670px;
+	.cardflinger-card.back::before {
+		content: '\f00c';
+		font-size: 50px;
+		font-family: Icons;
+		color: lightgreen;
+	}
+}
+
+.cardflinger-card-container.active {
+	box-shadow: 0px 0px 4px 3px var(--theme-text-3);
+}
+
+.experienced .tracks-container {
+	.tracks {
+		transition: all 0.2s;
+	}
+	.cardflinger-card-container {
+		transition-property: all;
+		transition-delay: 0.1s;
+		transition-duration: 0.2s;
+	}
+	.enactedpolicies-card-container {
+		transition-delay: 0.5s, 0.5s, 1s, 1s, 0.5s;
+		transition-duration: 0.5s, 0.5s, 1s, 1s, 1s;
+	}
+}

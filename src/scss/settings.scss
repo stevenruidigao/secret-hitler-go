@@ -1,0 +1,222 @@
+.settings {
+	position: relative;
+	padding: 2%;
+	margin: 10px;
+
+	.content > button {
+		position: absolute;
+		left: 50px;
+		top: 0;
+		color: var(--theme-text-1);
+		padding: 8px;
+	}
+
+	.profile-search {
+		position: absolute;
+		top: 0;
+		left: 210px;
+		display: flex;
+		flex-direction: row;
+
+		input {
+			padding: 3px;
+			width: 160px;
+		}
+
+		button {
+			padding: 8px;
+		}
+	}
+
+	.namechange-button {
+		position: absolute !important;
+		top: 0 !important;
+		left: 600px !important;
+		background: red !important;
+	}
+
+	.popups {
+		text-align: center !important;
+
+		button {
+			margin-top: 20px;
+			color: var(--theme-text-1);
+		}
+	}
+
+	.themes {
+		> h4 {
+			font-size: 18px;
+		}
+	}
+
+	.themes {
+		.theme-buttons {
+			padding-top: 30px;
+
+			button {
+				font-size: 12px;
+				background: var(--theme-primary);
+				color: var(--theme-text-1);
+
+				&:last-child {
+					margin-top: 5px;
+					background: var(--theme-secondary);
+
+					&:hover {
+						background: var(--theme-tertiary);
+					}
+				}
+			}
+		}
+		.picker-container {
+			position: absolute;
+			width: 225px;
+			z-index: 2;
+		}
+		.picker-close-button {
+			width: 30px;
+			height: 30px;
+			position: relative;
+			left: 190px;
+			top: 2px;
+			text-align: center;
+			background: white;
+			color: black;
+			cursor: pointer;
+			padding-top: 7px;
+			font-size: 24px;
+			z-index: 2;
+		}
+		.color-box {
+			width: 75px;
+			height: 75px;
+			border: 2px solid #aaa;
+			margin: 0 auto;
+			cursor: pointer;
+		}
+	}
+
+	.font-container {
+		input:active ~ label,
+		input:focus ~ label {
+			color: var(--theme-secondary);
+		}
+		label {
+			color: var(--theme-primary);
+			line-height: 1.3;
+
+			&:hover {
+				color: var(--theme-secondary);
+				cursor: pointer;
+			}
+
+			&:before,
+			&:after {
+				top: 6px !important;
+			}
+		}
+
+		h4 {
+			text-align: center;
+			display: block;
+			width: 100%;
+			font-size: 18px;
+		}
+
+		.comfortaa {
+			font-family: 'Comfortaa', Lato, sans-serif;
+		}
+
+		.lato {
+			font-family: Lato, sans-serif;
+		}
+
+		.germaniaone {
+			font-family: 'Germania One', Lato, sans-serif;
+		}
+
+		.robotoslab {
+			font-family: 'Roboto Slab', Lato, sans-serif;
+		}
+
+		.merriweather {
+			font-family: 'Merriweather', Lato, sans-serif;
+		}
+
+		.inter {
+			font-family: 'Inter', Lato, sans-serif;
+		}
+	}
+
+	.cardback-container {
+		text-align: center;
+
+		> .ui.grid {
+			width: 100%;
+			margin: 0;
+		}
+
+		.cardbacks-container {
+			padding-bottom: 0;
+			justify-content: space-around;
+			img {
+				width: 70px;
+				height: 95px;
+			}
+		}
+
+		.current-cardback {
+			width: 70px;
+			height: 95px;
+			background: url('../../public/images/default_cardback.png');
+			background-size: 70px !important;
+		}
+		.dropzone {
+			width: 70px;
+			height: 95px;
+			border-width: 2px;
+			border-color: var(--theme-background-3);
+			border-style: dashed;
+			border-radius: 5px;
+			color: var(--theme-text-2);
+			cursor: pointer;
+			font-size: 12px;
+			line-height: 1;
+		}
+
+		.cardback-message-container {
+			color: yellow;
+			padding-bottom: 0;
+		}
+
+		.preview-container {
+			button {
+				position: relative;
+				color: var(--theme-text-2);
+				top: -60px;
+				left: 10px;
+			}
+
+			a {
+				position: relative;
+				top: -10px;
+				left: -48px;
+			}
+		}
+	}
+
+	.ui.header {
+		text-align: center;
+	}
+
+	.eight.wide.column {
+		text-align: center;
+	}
+}
+
+.cardbackinfo {
+	strong {
+		color: red;
+	}
+}

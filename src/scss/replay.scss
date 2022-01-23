@@ -1,0 +1,542 @@
+#replay {
+	margin-top: 0px;
+	border: 0;
+	border-radius: 0;
+	background-color: var(--theme-background-2);
+	padding: 0px;
+
+	.chats {
+		display: flex;
+		flex-direction: column-reverse;
+		height: 336px;
+		position: relative;
+		background: var(--theme-text-1);
+		font-size: 18px;
+		cursor: not-allowed;
+		overflow-y: scroll;
+		flex-grow: 1;
+		background: var(--theme-background-1);
+
+		.ui.list {
+			padding-left: 5px;
+			position: absolute;
+			bottom: 0;
+			line-height: 1.2;
+			max-height: 336px;
+			width: 98%;
+			margin: 0;
+
+			.item {
+				word-wrap: break-word;
+				line-height: 130%;
+				padding: 1px 0 0;
+
+				span {
+					max-width: 90%;
+				}
+			}
+			.chat-user {
+				color: var(--theme-text-3);
+				white-space: nowrap;
+			}
+			.chat-user--game .chat-timestamp {
+				font-size: 12px;
+			}
+			.chat-user--game,
+			.game-chat,
+			.chat-user--game .chat-timestamp {
+				color: var(--theme-text-3);
+			}
+
+			.chat-user--claim,
+			.claim-chat {
+				color: #fbbd08;
+			}
+			.chat-user.broadcast {
+				color: lightsalmon;
+			}
+			.broadcast-chat {
+				color: lightskyblue !important;
+			}
+			.chat-role--liberal {
+				font-weight: 700;
+				color: $darkliberalteam;
+			}
+			.chat-role--hitler {
+				font-weight: 700;
+				color: #be0804;
+			}
+			.chat-role--fascist {
+				font-weight: 700;
+				color: $darkfascistteam;
+			}
+			.chat-player {
+				color: var(--theme-text-1);
+				font-weight: 700;
+			}
+			.chat-timestamp {
+				color: var(--theme-background-3);
+				font-size: 12px;
+				white-space: nowrap;
+				font-family: arial;
+			}
+		}
+	}
+
+	.scrollbar-container {
+		max-height: 382px;
+		overflow-y: scroll !important;
+	}
+
+	.not-found {
+		margin-top: 150px;
+	}
+
+	.exit {
+		position: absolute;
+		right: 0px;
+		z-index: 110;
+	}
+
+	.displaychats {
+		position: absolute;
+		right: 140px;
+		z-index: 110;
+	}
+
+	.displayroles {
+		position: absolute;
+		right: 265px;
+		z-index: 110;
+	}
+
+	.displaydeck {
+		position: absolute;
+		right: 433px;
+		z-index: 110;
+	}
+
+	.ui.grid > .column {
+		padding: 0;
+	}
+
+	.right-side {
+		width: calc(100vw - 650px - 250px - 20px);
+
+		@media screen and (min-width: 1080px) and (max-width: 1182px) {
+			width: calc(100vw - 650px);
+		}
+
+		@media screen and (max-width: 1079px) {
+			width: 100%;
+		}
+
+		.replay-controls {
+			padding: 20px 30px 10px 30px;
+			background-color: var(--theme-background-1);
+
+			h1 {
+				color: #c36563;
+				font-size: 26px;
+				font-family: $headerfont;
+			}
+
+			p {
+				font-family: $headerfont;
+				color: var(--theme-text-1);
+				font-size: 20px;
+			}
+
+			& > * {
+				&:not(:last-child) {
+					margin-bottom: 15px;
+				}
+
+				h1 {
+					margin-bottom: 5px;
+				}
+			}
+
+			.turn-nav {
+				min-height: 80px;
+
+				.slider {
+					margin-left: 10px;
+					width: 98%;
+					margin-bottom: 25px;
+				}
+			}
+
+			.phase-nav {
+				@media screen and (max-width: 1182px) {
+					display: none;
+				}
+				user-select: none;
+
+				.steps {
+					margin-top: 0;
+					cursor: pointer;
+
+					.filled.step:after {
+						background-color: #b3b3ff;
+					}
+
+					.title {
+						color: var(--theme-background-1);
+						font-size: 20px;
+						font-family: inherit;
+					}
+					.description {
+						font-size: 15px;
+						font-family: inherit;
+						white-space: nowrap;
+					}
+				}
+
+				.overlay-container {
+					margin-top: -82px;
+					width: 100%;
+					height: 68px;
+
+					.overlay {
+						height: 100%;
+						background-color: blue;
+						opacity: 0.3;
+						pointer-events: none;
+
+						&.candidacy {
+							width: 11.11%;
+						}
+						&.nomination {
+							width: 22.22%;
+						}
+						&.election {
+							width: 33.33%;
+						}
+						&.presidentLegislation {
+							width: 44.44%;
+						}
+						&.chancellorLegislation {
+							width: 55.55%;
+						}
+						&.topDeck {
+							width: 50%;
+						}
+						&.veto {
+							width: 66.66%;
+						}
+						&.policyEnaction {
+							width: 66.66%;
+						}
+						&.investigation,
+						&.execution {
+							width: 100%;
+						}
+					}
+				}
+			}
+
+			.description-container {
+				.content {
+					border: 2px solid #c36563;
+					padding: 10px 20px;
+					white-space: nowrap;
+					overflow: auto;
+					font-family: inherit;
+				}
+			}
+
+			.playback {
+				button.ui.button {
+					background-color: var(--theme-text-1);
+				}
+			}
+		}
+	}
+
+	.left-side {
+		background-color: #52393b;
+		max-width: 650px;
+		padding: 0 !important;
+		overflow: hidden !important;
+		position: relative;
+
+		@media screen and (min-width: 650px) {
+			height: 440px;
+		}
+
+		.card-group {
+			height: 50%;
+
+			> h1 {
+				height: 27px;
+				white-space: nowrap;
+				color: var(--theme-text-1);
+				font-size: 26px;
+				font-family: $headerfont;
+				margin-bottom: 10px;
+			}
+
+			.card {
+				height: 65% !important;
+				width: 30% !important;
+				margin-right: 3%;
+			}
+		}
+
+		.card {
+			height: 100%;
+			background-size: contain;
+			display: inline-block;
+			box-shadow: 0 0 4px 3px var(--theme-text-3);
+
+			&.fascist {
+				width: 16%;
+				background-image: url('../../public/images/cards/fascistp-l.png');
+			}
+
+			&.liberal {
+				width: 19.2%;
+				background-image: url('../../public/images/cards/liberalp-l.png');
+			}
+
+			&.discarded {
+				box-shadow: 0 0 4px 3px red;
+			}
+
+			& > i {
+				position: absolute;
+			}
+		}
+
+		.track-pieces {
+			* {
+				z-index: 2;
+			}
+
+			&.blurred > * {
+				filter: blur(5px) saturate(60%);
+				opacity: 0.3;
+			}
+
+			.enacted {
+				position: absolute;
+				height: 29.3%;
+			}
+
+			.election-tracker {
+				position: absolute;
+				width: 3.85%;
+				height: 5.68%;
+				background-color: #2f2fbe;
+				border-radius: 50%;
+			}
+		}
+
+		.replay-overlay {
+			.legislation {
+				position: absolute;
+				top: 20px;
+				left: 180px;
+				z-index: 3;
+
+				& > .hand > h1::after {
+					content: ':';
+				}
+
+				& > .claim > h1::after {
+					content: ':';
+				}
+			}
+		}
+	}
+
+	.big {
+		.left-side {
+			.track-pieces {
+				.enacted {
+					.card {
+						margin-right: 2px;
+					}
+
+					&.fascist-policies {
+						width: 87%;
+						top: 60%;
+						left: 7%;
+					}
+
+					&.liberal-policies {
+						width: 73%;
+						top: 10%;
+						left: 14.15%;
+					}
+				}
+
+				.election-tracker {
+					top: 41.36%;
+
+					&.zero {
+						left: 32.6%;
+					}
+					&.one {
+						left: 42.46%;
+					}
+					&.two {
+						left: 52.15%;
+					}
+					&.three {
+						left: 62%;
+					}
+				}
+			}
+			.replay-overlay {
+				.legislation {
+					top: 20px;
+					left: 27.69%;
+					height: 95%;
+					width: 52%;
+				}
+			}
+		}
+	}
+
+	.small {
+		.left-side {
+			.tracks {
+				transition: none;
+
+				.track-flipper,
+				.track {
+					height: 175px;
+				}
+			}
+
+			.track-pieces {
+				.enacted {
+					.card {
+						margin-right: 5px;
+					}
+
+					.card {
+						width: 69px;
+						height: 96px;
+					}
+
+					&.fascist-policies {
+						top: 214px;
+						left: 38px;
+					}
+
+					&.liberal-policies {
+						top: 38px;
+						left: 76px;
+					}
+				}
+
+				.election-tracker {
+					&.zero {
+						top: 138px;
+						left: 167px;
+					}
+
+					&.one {
+						top: 138px;
+						left: 218px;
+					}
+
+					&.two {
+						top: 138px;
+						left: 269px;
+					}
+
+					&.three {
+						top: 138px;
+						left: 320px;
+					}
+				}
+			}
+
+			.replay-overlay {
+				.legislation {
+					top: 4px;
+					left: 114px;
+
+					.card-group {
+						margin-bottom: 10px;
+					}
+
+					.card {
+						width: 85px;
+						height: 117px;
+					}
+				}
+			}
+		}
+
+		.right-side > .replay-controls {
+			padding: 5px 10px 0px 10px;
+
+			h1 {
+				font-size: 20px;
+			}
+
+			& > * {
+				&:not(:last-child) {
+					margin-bottom: 10px;
+				}
+
+				h1 {
+					margin-bottom: 2px;
+				}
+			}
+
+			.phase-nav {
+				margin-top: -25px;
+			}
+
+			.description {
+				.content {
+					padding: 5px 10px;
+					font-size: 16px;
+				}
+			}
+
+			.playback > .ui.horizontal.segments {
+				margin-top: 0px;
+				margin-bottom: 0px;
+			}
+		}
+	}
+}
+
+@for $i from 1 through 27 {
+	@keyframes splayAnim#{$i} {
+		0% {
+			transform: rotate(0deg); // -90deg
+		}
+		100% {
+			transform: rotate(($i - 1) * 10deg /* - 90deg */);
+		}
+	}
+
+	#splay#{$i} {
+		transform-origin: bottom left;
+		animation: 1s ease 0s 1 splayAnim#{$i} forwards;
+	}
+
+	//@if $i % 3 == 0 {
+	//	#splay#{$i}:before {
+	//		content: "";
+	//		display: block;
+	//		position: absolute;
+	//		top: 0;
+	//		bottom: 0;
+	//		left: 0;
+	//		right: 0;
+	//		background: rgb(123, 8, 255);
+	//		z-index: -1;
+	//		width: 10px;
+	//		height: 10px;
+	//	}
+	//}
+}
