@@ -1,0 +1,28 @@
+types.ExtendedUser {
+                                types.User {
+                                        Username: user.Username,
+                                        Wins: user.Wins,
+                                        Losses: user.Losses,
+                                        RainbowWins: user.RainbowWins,
+                                        RainbowLosses: user.RainbowLosses,
+                                        EloOverall: math.Floor(user.EloOverall),
+                                        EloSeason: math.Floor(user.EloSeason),
+                                        Status: user.Status,
+                                },
+                                Private: user.GameSettings.Private,
+                                DisableVisibleElo: user.GameSettings.DisableVisibleElo,
+                                DisableStaffColor: user.GameSettings.DisableStaffColor,
+                                TournyWins: user.GameSettings.TournyWins,
+
+                                // Blacklists are sent in the sendUserGameSettings event.
+                                // Blacklist: user.GameSettingsBlacklist,
+                                Cardback: user.GameSettings.Cardback,
+                                CardbackID: user.GameSettings.CardbackID,
+                                WinsSeason: user.Seasons[constants.CURRENT_SEASON_NUMBER].Wins,
+                                LossesSeason: user.Seasons[constants.CURRENT_SEASON_NUMBER].Losses,
+                                RainbowWinsSeason: user.Seasons[constants.CURRENT_SEASON_NUMBER].Rain>                                RainbowLossesSeason: user.Seasons[constants.CURRENT_SEASON_NUMBER].Ra>                                PreviousSeasonAward: user.GameSettings.SeasonAwards[CURRENT_SEASON_NU>                                SpecialTournamentStatus: user.SpecialTournamentStatus,
+                                TimeLastGameCreated: user.TimeLastGameCreated,
+                                StaffRole: user.StaffRole,
+                                Incognito: user.GameSettings.Incognito,
+                                Contributor: user.Contributor,
+                        }

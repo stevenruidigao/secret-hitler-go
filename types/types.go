@@ -2,8 +2,7 @@ package types
 
 import (
 	"time"
-
-	"github.com/markbates/goth"
+	//	"github.com/markbates/goth"
 )
 
 type ProviderIndex struct {
@@ -17,16 +16,10 @@ type Session struct {
 	Expires time.Time `bson:"expires"`
 }
 
-type GameSettings struct {
-	CustomWidth string
-	FontFamily  string
-}
-
-type User struct {
-	goth.User
-	Cardback     string    `bson:"cardback"`
-	LocalUserID  string    `bson:"localUserID"`
-	Sessions     []Session `bson:"sessions"`
-	Username     string    `bson:"username"`
-	GameSettings GameSettings
+type Chat struct {
+	Message string    `bson:"message" json:"message"`
+	UserID  string    `bson:"userID"  json:"userID"`
+	Username string
+	StaffRole string
+	Time    time.Time `bson:"time"    json:"time"`
 }

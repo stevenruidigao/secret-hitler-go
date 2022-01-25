@@ -71,23 +71,23 @@ func Render(tmplName string) http.Handler {
 	return http.HandlerFunc(func (writer http.ResponseWriter, request *http.Request) {
 		localSession := Authenticate(request)
 		localUser := types.User{}
-		fmt.Println("LS**********:", localSession)
+		// fmt.Println("LS**********:", localSession)
 
 		if localSession != nil {
-			localUser.LocalUserID = localSession.UserID
+			localUser.UserID = localSession.UserID
 
 			cursor := database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
-				"localUserID": localUser.LocalUserID,
+				"userID": localUser.UserID,
 			})
 
-			fmt.Println(cursor.Err())
+			// fmt.Println(cursor.Err())
 
 			if cursor.Err() == nil {
 				cursor.Decode(&localUser)
 			}
 		}
 
-		fmt.Println("LUUUUUUUUUUUU", localUser)
+		// fmt.Println("LUUUUUUUUUUUU", localUser)
 
 		data := struct {
 			Game                       interface{}
@@ -114,11 +114,43 @@ func Render(tmplName string) http.Handler {
 			TertiaryTextColor          template.CSS
 			GameSettings               interface{}
 			Verified                   interface{}
-			StaffRole                  interface{}
+			StaffRole                  string
 			HasNotDismissedSignupModal interface{}
 			IsTournamentMod            interface{}
 			Blacklist                  interface{}
-		}{false, CacheToken, localUser.Username, false, false, false, false, false, false, false, false, false, false, template.CSS("hsl(225, 73%, 57%)"), template.CSS("hsl(225, 48%, 57%)"), template.CSS("hsl(265, 73%, 57%)"), template.CSS("hsl(0, 0%, 0%)"), template.CSS("hsl(0, 0%, 7%)"), template.CSS("hsl(0, 0%, 14%)"), template.CSS("hsl(0, 0%, 100%)"), template.CSS("hsl(0, 0%, 93%)"), template.CSS("hsl(0, 0%, 86%)"), types.GameSettings{"", ""}, struct{}{}, struct{}{}, struct{}{}, struct{}{}, struct{}{}}
+		} {
+			Game: false,
+			ProdCacheBustToken: CacheToken,
+			Username: localUser.Username,
+			Home: false,
+			Changelog: false,
+			Rules: false,
+			Howtoplay: false,
+			Stats: false,
+			Wiki: false,
+			Discord: false,
+			Github: false,
+			Tou: false,
+			About: false,
+			PrimaryColor: template.CSS("hsl(225, 73%, 57%)"),
+			SecondaryColor: template.CSS("hsl(225, 48%, 57%)"),
+			TertiaryColor: template.CSS("hsl(265, 73%, 57%)"),
+			BackgroundColor: template.CSS("hsl(0, 0%, 0%)"),
+			SecondaryBackgroundColor: template.CSS("hsl(0, 0%, 7%)"),
+			TertiaryBackgroundColor: template.CSS("hsl(0, 0%, 14%)"),
+			TextColor: template.CSS("hsl(0, 0%, 100%)"),
+			SecondaryTextColor: template.CSS("hsl(0, 0%, 93%)"),
+			TertiaryTextColor: template.CSS("hsl(0, 0%, 86%)"),
+			GameSettings: types.GameSettings{
+				CustomWidth: "",
+				FontFamily: "",
+			},
+			Verified: struct{}{},
+			StaffRole: localUser.StaffRole,
+			HasNotDismissedSignupModal: struct{}{},
+			IsTournamentMod: struct{}{},
+			Blacklist: struct{}{},
+		}
 
 		if tmplName == "game" {
 			data.Game = true
@@ -146,16 +178,16 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 	router.Handle("/game/", Render("game")).Methods("GET")
 	router.Handle("/game/*", Render("game")).Methods("GET")
 
-	router.HandleFunc("/online-playercount", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/online-playercount", func (writer http.ResponseWriter, request *http.Request) {
 		data, _ := database.RedisDB.Get(ctx, "player-count").Result()
 		utils.JSONResponse(writer, struct {
 			Count string `json:"count"`
-		}{data}, 200)
+		} { data }, 200)
 	})
 
 	router.Handle("/socket.io/", socket.SetupSocketRoutes(io, store))
 
-	router.HandleFunc("/{provider}-login", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/{provider}-login", func (writer http.ResponseWriter, request *http.Request) {
 		_, err := gothic.CompleteUserAuth(writer, request)
 
 		if err == nil {
@@ -167,7 +199,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 		}
 	})
 
-	router.HandleFunc("/auth/{provider}/callback", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/auth/{provider}/callback", func (writer http.ResponseWriter, request *http.Request) {
 		user, err := gothic.CompleteUserAuth(writer, request)
 
 		if err != nil {
@@ -189,13 +221,13 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 		}
 
 		cursor = database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
-			"provider": user.Provider,
-			"userid":   user.UserID,
+			"linkedAccounts.provider": user.Provider,
+			"linkedAccounts.userid":   user.UserID,
 		})
 
-		localUser := types.User{User: user}
+		localUser := types.User{}
 
-		fmt.Println(cursor.Err(), user, user.NickName, user.Name, "**")
+		// fmt.Println(cursor.Err(), user, user.NickName, user.Name, "**")
 
 		if cursor.Err() == mongo.ErrNoDocuments {
 			localUser.Username = user.NickName
@@ -204,9 +236,9 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 				localUser.Username = user.Name
 			}
 
-			fmt.Println(localUser, "*", localUser.Username, "*", localUser.NickName, localUser.Name, "**")
+			// fmt.Println(localUser, "*", localUser.Username, "*", localUser.NickName, localUser.Name, "**")
 			localUser.Username = strings.ReplaceAll(localUser.Username, " ", "-")
-			fmt.Println(localUser, "*", localUser.Username, "*", localUser.NickName, localUser.Name, "**")
+			// fmt.Println(localUser, "*", localUser.Username, "*", localUser.NickName, localUser.Name, "**")
 
 			cursor = database.MongoDB.Collection("Users").FindOne(ctx, types.User{
 				Username: localUser.Username,
@@ -215,19 +247,19 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			if cursor.Err() == mongo.ErrNoDocuments {
 				userID := uuid.NewString()
 
-				cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, types.User{
-					LocalUserID: userID,
+				cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, bson.M{
+					"userID": userID,
 				})
 
 				for cursor.Err() != mongo.ErrNoDocuments {
 					userID = uuid.NewString()
 
-					cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, types.User{
-						LocalUserID: userID,
+					cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, bson.M{
+						"userID": userID,
 					})
 				}
 
-				localUser.LocalUserID = userID
+				localUser.UserID = userID
 				database.MongoDB.Collection("Users").InsertOne(ctx, localUser)
 
 			} else {
@@ -242,16 +274,17 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			writer.WriteHeader(http.StatusTemporaryRedirect)
 		}
 
-		localSession.UserID = localUser.LocalUserID
+		localSession.UserID = localUser.UserID
 		localSession.Expires = time.Now().Add(7 * 24 * time.Hour)
 		database.MongoDB.Collection("Sessions").InsertOne(ctx, localSession)
 		localUser.Sessions = append(localUser.Sessions, localSession)
+		localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
 
 		database.MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
-			"localUserID": localUser.LocalUserID,
+			"userID": localUser.UserID,
 
 		}, bson.M{
-			"$set": &user,
+			"$set": &localUser,
 		})
 
 		session, err := Store.Get(request, "session")
