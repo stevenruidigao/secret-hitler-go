@@ -1,11 +1,12 @@
 package utils
 
 import (
-	//	"crypto/rand"
+	// "crypto/rand"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -40,6 +41,28 @@ func GetCookie(cookieString string, key string) string {
 	} else {
 		return ""
 	}
+}
+
+func GenerateCombination(adjectives int, delimiter string, capitalize bool) string {
+	result := ""
+
+	for i := 0; i < adjectives; i++ {
+		if capitalize {
+			result += strings.Title(Adjectives[rand.Intn(len(Adjectives))]) + delimiter
+
+		} else {
+			result += strings.ToLower(Adjectives[rand.Intn(len(Adjectives))]) + delimiter
+		}
+	}
+
+	if capitalize {
+		result += strings.Title(Animals[rand.Intn(len(Animals))])
+
+	} else {
+		result += strings.ToLower(Animals[rand.Intn(len(Animals))])
+	}
+
+	return result
 }
 
 func MarshalJSON(data interface{}) (string, error) {

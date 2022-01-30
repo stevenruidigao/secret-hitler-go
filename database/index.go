@@ -25,19 +25,19 @@ func Marshal(data interface{}) string {
 func SetupDatabase(mongoDB *mongo.Database, redisDB *redis.Client) {
 	MongoDB = mongoDB
 	RedisDB = redisDB
-	RedisDB.Set(ctx, "player-count", "0", 0)
+	RedisDB.Set(ctx, "playerCount", "0", 0)
 }
 
-func GetUserByID(userID string) *types.User {
+func GetUserByID(userID string) *types.UserPrivate {
 	cursor := MongoDB.Collection("Users").FindOne(ctx, bson.M{
-		"userID": userID,
+		"user.userID": userID,
 	})
 
 	if cursor.Err() != nil {
 		return nil
 	}
 
-	user := types.User{}
+	user := types.UserPrivate{}
 	cursor.Decode(&user)
 
 	return &user

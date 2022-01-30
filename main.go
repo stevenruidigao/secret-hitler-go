@@ -7,9 +7,11 @@ import (
 
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	//	"encoding/json"
 	"fmt"
+	mathRand "math/rand"
 	"net/http"
 	// "os"
 	//	"strconv"
@@ -38,7 +40,7 @@ func main() {
 	viper.SetDefault("ENV", "development")
 	viper.SetDefault("PORT", "8080")
 	viper.SetDefault("HOST", "")
-	viper.SetDefault("COOKIE_MAX_AGE", 86400 * 30)
+	viper.SetDefault("COOKIE_MAX_AGE", 86400*30)
 	viper.SetDefault("MONGODB_HOST", "localhost")
 	viper.SetDefault("MONGODB_PORT", "27017")
 	viper.SetDefault("MONGODB_NAME", "secret-hitler-app")
@@ -74,13 +76,16 @@ func main() {
 	if sessionKey == "" {
 		bytes := make([]byte, 32)
 		rand.Read(bytes)
-		fmt.Println("Empty session key detected: set SESSION_KEY="+hex.EncodeToString(bytes)+" in .env.")
+		fmt.Println("Empty session key detected: set SESSION_KEY=" + hex.EncodeToString(bytes) + " in .env.")
 	}
 
 	if writeConfig {
-		 viper.WriteConfig()
+		viper.WriteConfig()
 	}
 
+	bytes := make([]byte, 4)
+	rand.Read(bytes)
+	mathRand.Seed(int64(time.Now().Nanosecond()) + int64(binary.LittleEndian.Uint32(bytes)))
 	routes.CacheToken = cacheToken
 	fmt.Println(env, routes.CacheToken)
 	uri := "mongodb://" + mongoDBHost + ":" + mongoDBPort + "/" + mongoDBName

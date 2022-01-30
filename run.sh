@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go build && ./secrethitler.io
+gofmt -w *.go && gofmt -w */*.go && go build && ./secrethitler.io

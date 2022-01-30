@@ -201,8 +201,6 @@ class Menu extends React.Component {
 			window.document.title = 'SH.io';
 		}
 
-		console.log(this.props.version);
-
 		return (
 			<div>
 				<div className="menu-container" style={{ zIndex: 9999 }}>
@@ -216,7 +214,7 @@ class Menu extends React.Component {
 								|{' '}
 								<a
 									className={
-										this.props.midSection !== 'game' && !console.log(this.props.version) && this.props.version.lastSeen && this.props.version.current.number !== this.props.version.lastSeen
+										this.props.midSection !== 'game' && this.props.version.lastSeen && this.props.version.current.number !== this.props.version.lastSeen
 											? 'patch-alert'
 											: null
 									}

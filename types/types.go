@@ -17,9 +17,9 @@ type Session struct {
 }
 
 type Chat struct {
-	Message string    `bson:"message" json:"message"`
-	UserID  string    `bson:"userID"  json:"userID"`
-	Username string
+	Message   string `bson:"message" json:"message"`
+	UserID    string `bson:"userID"  json:"userID"`
+	Username  string
 	StaffRole string
-	Time    time.Time `bson:"time"    json:"time"`
+	Time      time.Time `bson:"time"    json:"time"`
 }
