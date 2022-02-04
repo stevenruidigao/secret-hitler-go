@@ -86,7 +86,7 @@ func SendUserList(socket socketio.Conn) {
 	socket.Emit("userList", GetUserList(user != nil && user.StaffRole != "" && user.StaffRole != "altmod" && user.StaffRole != "veteran"))
 }
 
-func UpdateUserStatus(user types.UserPublic, game *types.GamePublic, override string) {
+func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override string) {
 	UserMapMutex.RLock()
 
 	for key, _ := range UserMap {
@@ -142,10 +142,10 @@ func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
 			}
 
 			socket.Emit("updateSeatForUser", true)
-			UpdateUserStatus(*user, &game.GamePublic, "playing")
+			UpdateUserStatus(user, &game.GamePublic, "playing")
 
 		} else {
-			UpdateUserStatus(*user, &game.GamePublic, "observing")
+			UpdateUserStatus(user, &game.GamePublic, "observing")
 		}
 	}
 

@@ -23,8 +23,8 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 
 	currentTime := time.Now()
 
-	if currentTime.Sub(user.TimeLastGameCreated) < time.Second*10 || user.Status.Type != "none" {
-		fmt.Println(time.Now(), user.TimeLastGameCreated, time.Now().Sub(user.TimeLastGameCreated), "*", user.Status.Type, "*", user.Status.Type != "none", "*")
+	if time.Since(user.TimeLastGameCreated) < time.Second*10 || user.Status.Type != "none" {
+		fmt.Println(time.Now(), user.TimeLastGameCreated, time.Since(user.TimeLastGameCreated), "*", user.Status.Type, "*", user.Status.Type != "none", "*")
 		return
 	}
 
@@ -306,7 +306,7 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 	fmt.Println("newGame", newGame)
 }
 
-func AddNewGameChat(socket socketio.Conn, user types.UserPublic, data map[string]interface{}, game types.GamePrivate) {
+func AddNewGameChat(socket socketio.Conn, user *types.UserPublic, data map[string]interface{}, game *types.GamePrivate) {
 	fmt.Println("AddNewGameChat", data)
 
 	chat, ok := data["chat"].(string)
@@ -324,7 +324,7 @@ func AddNewGameChat(socket socketio.Conn, user types.UserPublic, data map[string
 		game.GamePublic.GeneralGameSettings.Mutex.Unlock()
 
 		GameMapMutex.Lock()
-		GameMap[game.GamePublic.ID] = game
+		GameMap[game.GamePublic.ID] = *game
 		GameMapMutex.Unlock()
 
 		fmt.Println("Added new game chat")
@@ -335,7 +335,7 @@ func AddNewGameChat(socket socketio.Conn, user types.UserPublic, data map[string
 	}
 }
 
-func AddNewGeneralChat(socket socketio.Conn, user types.UserPublic, data map[string]interface{}) {
+func AddNewGeneralChat(socket socketio.Conn, user *types.UserPublic, data map[string]interface{}) {
 	fmt.Println("AddNewGeneralChat", data)
 
 	chat, ok := data["chat"].(string)
@@ -357,7 +357,7 @@ func AddNewGeneralChat(socket socketio.Conn, user types.UserPublic, data map[str
 	}
 }
 
-func UpdateSeatedUser(socket socketio.Conn, user types.UserPublic, data map[string]interface{}) {
+func UpdateSeatedUser(socket socketio.Conn, user *types.UserPublic, data map[string]interface{}) {
 	id, ok := data["uid"].(string)
 
 	if !ok {
@@ -378,7 +378,7 @@ func UpdateSeatedUser(socket socketio.Conn, user types.UserPublic, data map[stri
 		}
 	}
 
-	game.GamePublic.GeneralGameSettings.Players[game.GamePublic.PlayerCount] = user
+	game.GamePublic.GeneralGameSettings.Players[game.GamePublic.PlayerCount] = *user
 	game.GamePublic.GeneralGameSettings.Map[user.UserID] = game.GamePublic.PlayerCount
 	game.GamePublic.PlayerCount++
 	socket.Emit("updateSeatForUser", true)

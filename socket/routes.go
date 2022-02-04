@@ -111,7 +111,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			// fmt.Println("UserMap", UserMap)
 			UserMapMutex.Unlock()
 			socket.Emit("gameSettings", user.GameSettings)
-			UpdateUserStatus(user.UserPublic, nil, "")
+			UpdateUserStatus(&user.UserPublic, nil, "")
 		}
 
 		fmt.Println("Updated player count")
@@ -184,7 +184,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 				game := GameMap[id]
 				GameMapMutex.RUnlock()
 
-				AddNewGameChat(socket, user.UserPublic, data, game)
+				AddNewGameChat(socket, &user.UserPublic, data, &game)
 			}
 		}
 	})
@@ -194,7 +194,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		user := GetUser(socket)
 
 		if user != nil {
-			AddNewGeneralChat(socket, user.UserPublic, data)
+			AddNewGeneralChat(socket, &user.UserPublic, data)
 		}
 	})
 
@@ -217,7 +217,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		user := GetUser(socket)
 
 		if user != nil {
-			UpdateSeatedUser(socket, user.UserPublic, data)
+			UpdateSeatedUser(socket, &user.UserPublic, data)
 		}
 	})
 
