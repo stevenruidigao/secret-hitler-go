@@ -30,7 +30,7 @@ func SetupDatabase(mongoDB *mongo.Database, redisDB *redis.Client) {
 
 func GetUserByID(userID string) *types.UserPrivate {
 	cursor := MongoDB.Collection("Users").FindOne(ctx, bson.M{
-		"user.userID": userID,
+		"userPublic.userID": userID,
 	})
 
 	if cursor.Err() != nil {
@@ -41,4 +41,18 @@ func GetUserByID(userID string) *types.UserPrivate {
 	cursor.Decode(&user)
 
 	return &user
+}
+
+func UpdateUserByID(userID string, user *types.UserPrivate) bool {
+	if user == nil {
+		return false
+	}
+
+	MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
+		"userPublic.userID": userID,
+	}, bson.M{
+		"$set": user,
+	})
+
+	return true
 }

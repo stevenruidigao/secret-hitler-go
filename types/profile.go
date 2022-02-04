@@ -28,5 +28,5 @@ type Profile struct {
 			ShotAccuracy ProfileCategory `bson:"shotAccuracy" json:"shotAccuracy"`
 		} `bson:"actions" json:"actions"`
 	} `bson:"stats" json:"stats"`
-	RecentGames []Game `bson:"recentGames" json:"recentGames"`
+	RecentGames []GamePublic `bson:"recentGames" json:"recentGames"`
 }

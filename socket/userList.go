@@ -6,5 +6,5 @@ import (
 	"sync"
 )
 
-var UserList = []types.User{}
-var UserListMutex = sync.RWMutex{}
+var UserMap = map[string]types.UserPublic{}
+var UserMapMutex = sync.RWMutex{}

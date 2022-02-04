@@ -31,7 +31,7 @@ type UserStatus struct {
 	GameID string `bson:"gameId" json:"gameId"`
 }
 
-type User struct {
+type UserPublic struct {
 	UserID               string               `bson:"userID"               json:"userID"`
 	Username             string               `bson:"username"             json:"userName"`
 	Local                bool                 `bson:"local"                json:"local,omitempty"`
@@ -43,19 +43,19 @@ type User struct {
 	Banned               bool                 `bson:"banned"               json:"banned,omitempty"`
 	Timeout              time.Time            `bson:"timeout"              json:"timeout,omitempty"`
 	TOULastAgreed        string               `bson:"TOULastAgreed"	       json:"TOULastAgreed,omitempty"`
-	Bio                  string               `bson:"bio"	               json:"bio,omitempty"`
-	Games                []string             `bson:"games"	               json:"games,omitempty"`
-	Wins                 int                  `bson:"wins"	               json:"wins"`
+	Bio                  string               `bson:"bio"                  json:"bio,omitempty"`
+	Games                []string             `bson:"games"                json:"games,omitempty"`
+	Wins                 int                  `bson:"wins"                 json:"wins"`
 	Losses               int                  `bson:"losses"               json:"losses"`
 	RainbowWins          int                  `bson:"rainbowWins"          json:"rainbowWins"`
-	RainbowLosses        int                  `bson:"rainbowLosses"	       json:"rainbowLosses"`
+	RainbowLosses        int                  `bson:"rainbowLosses"        json:"rainbowLosses"`
 	Seasons              []Season             `bson:"seasons"              json:"seasons,omitempty"`
 	PreviousDayElo       int                  `bson:"previousDayElo"       json:"previousDayElo,omitempty"`
 	Created              time.Time            `bson:"created"              json:"created,omitempty"`
 	OnFire               bool                 `bson:"onFire"               json:"onFire"`
 	LastCompleteGame     time.Time            `bson:"lastCompleteGame"     json:"lastCompleteGame,omitempty"`
 	LastVersionSeen      string               `bson:"lastVersionSeen"      json:"lastVersionSeen,omitempty"`
-	Fixed                bool                 `bson:"fixed"	               json:"fixed"`
+	Fixed                bool                 `bson:"fixed"                json:"fixed"`
 	EloSeason            float64              `bson:"eloSeason"            json:"eloSeason,omitempty"`
 	EloOverall           float64              `bson:"eloOverall"           json:"eloOverall"`
 	HashID               string               `bson:"hashID"               json:"hashID"`
@@ -68,11 +68,13 @@ type User struct {
 	TournamentMod        bool                 `bson:"tournamentMod"        json:"tournamentMod,omitempty"`
 	Status               UserStatus           `bson:"status"               json:"status,omitempty"`
 	TimeLastGameCreated  time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
-	Profile              Profile              `bson:"profile"              json:"profile"`
+	Profile              Profile              `bson:"profile"              json:"profile,omitempty"`
+	LeftGame             bool                 `bson:"leftGame" json:"leftGame"`
+	Connected            bool                 `bson:"connected" json:"connected"`
 }
 
 type UserPrivate struct {
-	User
+	UserPublic           `bson:"userPublic" json:"userPublic"`
 	LinkedAccounts       []goth.User          `bson:"linkedAccounts"       json:"linkedAccounts,omitempty"`
 	Sessions             []Session            `bson:"sessions"             json:"sessions,omitempty"`
 	Password             string               `bson:"password"             json:"password,omitempty"`
@@ -109,7 +111,7 @@ type UserPrivate struct {
 }
 
 type ExtendedUser struct {
-	User
+	UserPublic
 	DisableVisibleElo       bool
 	DisableStaffColor       bool
 	Incognito               bool
@@ -133,7 +135,7 @@ type ExtendedUser struct {
 	UnbanTime               time.Time `bson:"unbanTime" json:"unbanTime"`
 	Private                 bool      `bson:"private"              json:"private,omitempty"`
 	PrivateToggleTime       time.Time
-	Blacklist               []string
+	Blacklist               map[string]string
 	TournyWins              []string
 	ChangedName             bool
 	PreviousSeasonAward     string

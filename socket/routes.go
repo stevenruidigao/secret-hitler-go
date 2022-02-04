@@ -1,14 +1,18 @@
 package socket
 
 import (
+	"secrethitler.io/constants"
 	"secrethitler.io/database"
 	"secrethitler.io/types"
 	"secrethitler.io/utils"
 
 	"context"
+	// "encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	//	"time"
@@ -28,14 +32,14 @@ var tokensMutex = sync.RWMutex{}
 
 func Authenticate(socket socketio.Conn) *types.Session {
 	tokensMutex.RLock()
-	token := tokens[utils.GetCookie(socket.RemoteHeader().Get("Cookie"), "session")]
+	token := tokens[utils.GetCookie(socket.RemoteHeader().Get("Cookie"), "sh-session")]
 	tokensMutex.RUnlock()
 
 	cur := database.MongoDB.Collection("Sessions").FindOne(ctx, bson.M{
 		"token": token,
 	})
 
-	// fmt.Println("T", token)
+	// fmt.Println("T", token, tokens, utils.GetCookie(socket.RemoteHeader().Get("Cookie"), "sh-session"))
 
 	if cur.Err() == mongo.ErrNoDocuments {
 		return nil
@@ -49,6 +53,7 @@ func Authenticate(socket socketio.Conn) *types.Session {
 
 func GetUser(socket socketio.Conn) *types.UserPrivate {
 	session := Authenticate(socket)
+	// fmt.Println("Session", session)
 
 	if session == nil {
 		return nil
@@ -60,6 +65,20 @@ func GetUser(socket socketio.Conn) *types.UserPrivate {
 func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.HandlerFunc {
 	IO = io
 
+	files, err := ioutil.ReadDir("./public/images/emotes")
+
+	if err == nil {
+		EmotesListMutex.Lock()
+
+		for _, file := range files {
+			if strings.HasSuffix(file.Name(), ".png") {
+				EmotesList[":"+strings.TrimSuffix(file.Name(), ".png")+":"] = "/images/emotes/" + file.Name() + "?v=" + constants.CURRENT_VERSION_NUMBER
+			}
+		}
+
+		EmotesListMutex.Unlock()
+	}
+
 	IO.OnConnect("/", func(socket socketio.Conn) error {
 		socket.SetContext("")
 		fmt.Println("Connecting", socket.ID())
@@ -68,12 +87,18 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			Current interface{} `json:"current"`
 		}{Current: struct {
 			Number string `json:"number"`
-		}{Number: "1.8.2"}})
+		}{Number: constants.CURRENT_VERSION_NUMBER}})
 
 		fmt.Println("Sent version:", socket.ID())
-
+		EmotesListMutex.RLock()
+		socket.Emit("emoteList", EmotesList)
+		// jsonData, err := json.Marshal(EmotesList)
+		// fmt.Println("Sent emote list:", err)
+		// fmt.Println("more details", string(jsonData), EmotesList)
+		EmotesListMutex.RUnlock()
 		// SendUserList(socket)
 		user := GetUser(socket)
+		// fmt.Println("User", user)
 
 		if user != nil {
 			data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
@@ -81,10 +106,12 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			data = strconv.Itoa(playerCount + 1)
 			fmt.Println("*", data, playerCount)
 			database.RedisDB.Set(ctx, "playerCount", data, 0)
-			UserListMutex.Lock()
-			UserList = append(UserList, user.User)
-			UserListMutex.Unlock()
+			UserMapMutex.Lock()
+			UserMap[user.UserPublic.UserID] = user.UserPublic
+			// fmt.Println("UserMap", UserMap)
+			UserMapMutex.Unlock()
 			socket.Emit("gameSettings", user.GameSettings)
+			UpdateUserStatus(user.UserPublic, nil, "")
 		}
 
 		fmt.Println("Updated player count")
@@ -128,42 +155,103 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			return
 		}
 
-		a, _ := utils.MarshalJSON(user.GameSettings)
-		fmt.Println("gameSettings*", user, "*", user.GameSettings, "**", user.GameSettings.Private, "\n", a)
+		// a, _ := utils.MarshalJSON(user.GameSettings)
+		// fmt.Println("gameSettings*", user, "*", user.GameSettings, "**", user.GameSettings.Private, "\n", a)
 		socket.Emit("gameSettings", user.GameSettings)
-		/*socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)
-		socket.Emit("gameSettings", user.GameSettings)*/
 	})
 
 	IO.OnEvent("/", "addNewGame", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("AAaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\n\n\n\n\n\n\n")
-		fmt.Println("addNewGame", data)
+		// fmt.Println("addNewGame", data)
 		user := GetUser(socket)
 
 		if user != nil {
-			AddNewGame(socket, user.User, data)
+			AddNewGame(socket, user.UserPublic, data)
 		}
+
 		socket.Emit("hi", "hi")
+	})
+
+	IO.OnEvent("/", "addNewGameChat", func(socket socketio.Conn, data map[string]interface{}) {
+		// fmt.Println("addNewGameChat", data)
+		user := GetUser(socket)
+
+		if user != nil {
+			id, ok := data["uid"].(string)
+
+			if ok {
+				GameMapMutex.RLock()
+				game := GameMap[id]
+				GameMapMutex.RUnlock()
+
+				AddNewGameChat(socket, user.UserPublic, data, game)
+			}
+		}
+	})
+
+	IO.OnEvent("/", "addNewGeneralChat", func(socket socketio.Conn, data map[string]interface{}) {
+		// fmt.Println("addNewGeneralChat", data)
+		user := GetUser(socket)
+
+		if user != nil {
+			AddNewGeneralChat(socket, user.UserPublic, data)
+		}
+	})
+
+	IO.OnEvent("/", "getGameInfo", func(socket socketio.Conn, id string) {
+		user := GetUser(socket)
+
+		fmt.Println("Game Update:", id)
+
+		if user != nil {
+			SendGameInfo(socket, &user.UserPublic, id)
+
+		} else {
+			SendGameInfo(socket, nil, id)
+		}
+
+		fmt.Println("Updated Game")
+	})
+
+	IO.OnEvent("/", "updateSeatedUser", func(socket socketio.Conn, data map[string]interface{}) {
+		user := GetUser(socket)
+
+		if user != nil {
+			UpdateSeatedUser(socket, user.UserPublic, data)
+		}
+	})
+
+	IO.OnEvent("/", "hasSeenNewPlayerModal", func(socket socketio.Conn, message string) {
+		fmt.Println("hasSeenNewPlayerModal:", message)
+		user := GetUser(socket)
+		user.DismissedSignupModal = true
+
+		database.MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
+			"user.UserPublicID": user.UserPublic.UserID,
+		}, bson.M{
+			"$set": &user,
+		})
+	})
+
+	IO.OnEvent("/", "updateGameSettings", func(socket socketio.Conn, data map[string]interface{}) {
+		user := GetUser(socket)
+
+		// fmt.Println("Update Game Settings:", data["rightSidebarInGame"], user.GameSettings)
+
+		if user != nil {
+			for key, value := range data {
+				switch key {
+				case "enableRightSidebarInGame":
+					user.GameSettings.RightSidebarInGame = value.(bool)
+					break
+				case "enableTimestamps":
+					user.GameSettings.Timestamps = value.(bool)
+					break
+				}
+			}
+
+			database.UpdateUserByID(user.UserPublic.UserID, user)
+		}
 	})
 
 	IO.OnError("/", func(socket socketio.Conn, err error) {
@@ -181,27 +269,25 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			data = strconv.Itoa(playerCount - 1)
 			fmt.Println("**", data, playerCount)
 			database.RedisDB.Set(ctx, "playerCount", data, 0)
-			var i int
-			UserListMutex.RLock()
 
-			for i := range UserList {
-				if UserList[i].UserID == user.UserID {
-					break
+			if user.Status.Type == "playing" {
+				GameMapMutex.RLock()
+				game := GameMap[user.Status.GameID]
+				GameMapMutex.RUnlock()
+
+				playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.UserID].(int)
+
+				if ok {
+					game.GamePublic.PlayerCount--
+					game.GamePublic.PublicPlayersState[playerNumber].Connected = false
+					IO.BroadcastToRoom("/", "game-"+game.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
 				}
+				// UpdateUserStatus(user.UserPublic, nil, "")
 			}
 
-			UserListMutex.RUnlock()
-			UserListMutex.Lock()
-
-			if i == len(UserList)-1 {
-				UserList = append([]types.User{}, UserList[:i]...)
-
-			} else {
-				// error occurs here
-				// UserList = append(append([]types.User{}, UserList[:i]...), UserList[i+1:]...)
-			}
-
-			UserListMutex.Unlock()
+			UserMapMutex.Lock()
+			delete(UserMap, user.UserPublic.UserID)
+			UserMapMutex.Unlock()
 
 			IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))
 			IO.BroadcastToRoom("/", "users", "userList", GetUserList(false))
@@ -209,14 +295,16 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 	})
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		session, _ := store.Get(request, "session")
+		session, _ := store.Get(request, "sh-session")
 		localSession, ok := session.Values["session"].(types.Session)
 
 		if ok {
-			sessionCookie, _ := request.Cookie("session")
+			sessionCookie, _ := request.Cookie("sh-session")
 			tokensMutex.Lock()
 			tokens[sessionCookie.Value] = localSession.Token
 			tokensMutex.Unlock()
+
+			// fmt.Println("Session:", localSession.Token)
 		}
 
 		IO.ServeHTTP(writer, request)

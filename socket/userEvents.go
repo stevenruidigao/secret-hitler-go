@@ -18,7 +18,7 @@ import (
 
 /*addNewGame map[blindMode:false disableGamechat:false disableObserver:false disableObserverLobby:false eloSliderValue:<nil> excludedPlayerCount:[5 6 8 9 10] experiencedMode:true flag:none flappyMode:false flappyOnlyMode:false gameName:New Game gameType:ranked isTourny:false isVerifiedOnly:true maxPlayersCount:7 minPlayersCount:7 playerChats:enabled privateAnonymousRemakes:false privatePassword:false rainbowgame:false rebalance6p:false rebalance7p:false rebalance9p2f:false timedMode:false unlistedGame:false]*/
 
-func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface{}) {
+func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]interface{}) {
 	// gameSettings := data["gameSettings"]
 
 	currentTime := time.Now()
@@ -90,10 +90,10 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 	fmt.Println("eloMinimum", eloMinimum)
 
 	// customGameSettings := map[string]interface{}{}
-	customGameSettings, ok := data["customGameSettings"].(map[string]interface{})
+	customGameSettings, ok := data["customGameSettings"].(types.CustomGameSettings)
 
 	if !ok {
-		customGameSettings = nil
+		customGameSettings = types.CustomGameSettings{}
 	}
 
 	fmt.Println("customGameSettings", customGameSettings)
@@ -102,14 +102,15 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 	// fmt.Println("experiencedMode", data["experiencedMode"].(bool))
 	// fmt.Println(data["privatePassword"] != nil, data["customGameSettings"], data["customGameSettings"].(map[string]interface{}), data["casualGame"])
 
-	newGame := types.Game{
+	newGame := types.GamePublic{
+		Date: currentTime,
 		GameState: types.GameState{
 			PreviousElectedGovernment: []int{},
 			UndrawnPolicyCount:        17,
 			DiscardedPolicyCount:      0,
 			PresidentIndex:            -1,
 		},
-		Chats:   []types.Chat{},
+		Chats:   []types.GameChat{},
 		Guesses: map[string]string{},
 		GeneralGameSettings: types.GeneralGameSettings{
 			WhitelistedPlayers:      []string{},
@@ -150,19 +151,46 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 			Usernames:               []string{user.Username},
 			CustomCardback:          []string{},
 			CustomCardbackUID:       []string{},
-			Players:                 []types.User{user},
+			Players:                 []types.UserPublic{user},
 			SeatedCount:             1,
+			Map:                     map[string]interface{}{user.UserID: 0},
 		},
 		CustomGameSettings: customGameSettings,
-		PublicPlayersState: []interface{}{},
-		PlayersState:       []interface{}{},
-		CardFlingerState:   []interface{}{},
+		/*type PlayerState struct {
+			UserID		   string    `bson:"userID" json:"userID"`
+			Connected                bool   `bson:"connected" json:"connected"`
+			LeftGame                 bool   `bson:"leftGame"  json:"leftGame"`
+			CustomCardback           string `bson:"customCardback" json:"customCardback"`
+			CustomCardbackID         string `bson:"customCardbackID" json:"customCardbackUid"`
+			IsLoader                 bool   `bson:"isLoader" json:"isLoader"`
+			IsRemakeVoting           bool   `bson:"isRemakeVoting" json:"isRemakeVoting"`
+			PingTime                 int64  `bson:"pingTime" json:"pingTime"`
+			Username                 string `bson:"username" json:"userName"`
+			PreviousGovernmentStatus string `bson:"previousGovernmentStatus" json:"previousGovernmentStatus"`
+			GovernmentStatus         string `bson:"governmentStatus" json:"governmentStatus"`
+		}*/
+		PublicPlayersState: []types.PlayerState{types.PlayerState{
+			UserID:                   user.UserID,
+			Connected:                true,
+			LeftGame:                 false,
+			CustomCardback:           "",
+			CustomCardbackID:         "",
+			IsLoader:                 false,
+			IsRemakeVoting:           false,
+			PingTime:                 0,
+			Username:                 user.Username,
+			PreviousGovernmentStatus: "",
+			GovernmentStatus:         "",
+		}},
+		PlayersState:     []interface{}{},
+		CardFlingerState: []interface{}{},
 		TrackState: types.TrackState{
 			LiberalPolicyCount:   0,
 			FascistPolicyCount:   0,
 			ElectionTrackerCount: 0,
 			EnactedPolicies:      []string{},
 		},
+		PlayerCount: 0,
 	}
 
 	playerCounts := []int{}
@@ -186,7 +214,8 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 		return
 	}
 
-	newGame.GeneralGameSettings.Status = "Waiting for " + strconv.Itoa(playerCounts[0]-1) + " more players..."
+	newGame.PlayerCount = len(newGame.PublicPlayersState)
+	newGame.GeneralGameSettings.Status = "Waiting for " + strconv.Itoa(playerCounts[0]-newGame.PlayerCount) + " more players..."
 
 	if newGame.GeneralGameSettings.Private {
 		fmt.Println("private", newGame.GeneralGameSettings.Private, data["unlistedGame"], data["privatePassword"], data["privatePassword"] != false)
@@ -214,12 +243,12 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 		return
 	}
 
-	if newGame.CustomGameSettings != nil && newGame.CustomGameSettings["enabled"] != nil {
+	if newGame.CustomGameSettings.Enabled {
 
-	} else {
+	} /* else {
 		newGame.CustomGameSettings = map[string]interface{}{}
-		newGame.CustomGameSettings["enabled"] = false
-	}
+		newGame.CustomGameSettings.Enabled = false
+	}*/
 
 	if data["isTourny"] != false {
 		newGame.GeneralGameSettings.ID += "Tourny"
@@ -235,16 +264,16 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 	})
 
 	privateGame := types.GamePrivate{
-		Game:                    newGame,
+		GamePublic:              newGame,
 		Reports:                 struct{}{},
-		UnseatedGameChats:       []types.Chat{},
-		CommandChats:            []types.Chat{},
-		ReplayGameChats:         []types.Chat{},
+		UnseatedGameChats:       []types.GameChat{},
+		CommandChats:            []types.GameChat{},
+		ReplayGameChats:         []types.GameChat{},
 		Lock:                    struct{}{},
 		VotesPeeked:             false,
 		RemakeVotesPeeked:       false,
 		InvIndex:                -1,
-		HiddenInfoChat:          []types.Chat{},
+		HiddenInfoChat:          []types.GameChat{},
 		HiddenInfoSubscriptions: []interface{}{},
 		HiddenInfoShouldNotify:  true,
 		GameCreatorName:         user.Username,
@@ -259,18 +288,98 @@ func AddNewGame(socket socketio.Conn, user types.User, data map[string]interface
 		newGame.GeneralGameSettings.Private = true
 	}
 
-	GameListMutex.Lock()
-	GameList = append(GameList, privateGame)
-	GameListMutex.Unlock()
+	GameMapMutex.Lock()
+	GameMap[privateGame.GamePublic.ID] = privateGame
+	GameMapMutex.Unlock()
 
-	database.RedisDB.Set(ctx, "gamesList", GameList, 0)
+	GameMapMutex.RLock()
+	database.RedisDB.Set(ctx, "gamesMap", GameMap, 0)
+	GameMapMutex.RUnlock()
 
 	IO.BroadcastToRoom("/", "aem", "gameList", GetGameList(true))
 	IO.BroadcastToRoom("/", "users", "gameList", GetGameList(false))
 
-	IO.JoinRoom("/", newGame.GeneralGameSettings.ID, socket)
+	IO.JoinRoom("/", "game-"+newGame.GeneralGameSettings.ID, socket)
 	socket.Emit("updateSeatForUser")
 	socket.Emit("gameUpdate", newGame)
 	socket.Emit("joinGameRedirect", newGame.GeneralGameSettings.ID)
 	fmt.Println("newGame", newGame)
+}
+
+func AddNewGameChat(socket socketio.Conn, user types.UserPublic, data map[string]interface{}, game types.GamePrivate) {
+	fmt.Println("AddNewGameChat", data)
+
+	chat, ok := data["chat"].(string)
+
+	if ok {
+		game.GamePublic.GeneralGameSettings.Mutex.Lock()
+		game.GamePublic.Chats = append(game.GamePublic.Chats, types.GameChat{
+			Username:  user.Username,
+			UserID:    user.UserID,
+			Message:   chat,
+			StaffRole: user.StaffRole,
+			Timestamp: time.Now(),
+			GameID:    game.ID,
+		})
+		game.GamePublic.GeneralGameSettings.Mutex.Unlock()
+
+		GameMapMutex.Lock()
+		GameMap[game.GamePublic.ID] = game
+		GameMapMutex.Unlock()
+
+		fmt.Println("Added new game chat")
+		game.GamePublic.GeneralGameSettings.Mutex.RLock()
+		IO.BroadcastToRoom("/", "game-"+game.GamePublic.ID, "playerChatUpdate", game.GamePublic.Chats[len(game.GamePublic.Chats)-1])
+		game.GamePublic.GeneralGameSettings.Mutex.RLock()
+		// IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game)
+	}
+}
+
+func AddNewGeneralChat(socket socketio.Conn, user types.UserPublic, data map[string]interface{}) {
+	fmt.Println("AddNewGeneralChat", data)
+
+	chat, ok := data["chat"].(string)
+
+	if ok {
+		GeneralChatsMutex.Lock()
+		GeneralChats.List = append(GeneralChats.List, types.GeneralChat{
+			Username:  user.Username,
+			UserID:    user.UserID,
+			Message:   chat,
+			StaffRole: user.StaffRole,
+			Timestamp: time.Now(),
+		})
+		GeneralChatsMutex.Unlock()
+
+		fmt.Println("Added new general chat")
+		IO.BroadcastToRoom("/", "users", "generalChats", GeneralChats)
+		IO.BroadcastToRoom("/", "aem", "generalChats", GeneralChats)
+	}
+}
+
+func UpdateSeatedUser(socket socketio.Conn, user types.UserPublic, data map[string]interface{}) {
+	id, ok := data["uid"].(string)
+
+	if !ok {
+		return
+	}
+
+	game := GameMap[id]
+
+	if game.GameCreatorBlacklist != nil {
+		for _, id := range game.GameCreatorBlacklist {
+			if id == user.UserID {
+				socket.Emit("gameJoinStatusUpdate", bson.M{
+					"status": "blacklisted",
+				})
+
+				return
+			}
+		}
+	}
+
+	game.GamePublic.GeneralGameSettings.Players[game.GamePublic.PlayerCount] = user
+	game.GamePublic.GeneralGameSettings.Map[user.UserID] = game.GamePublic.PlayerCount
+	game.GamePublic.PlayerCount++
+	socket.Emit("updateSeatForUser", true)
 }

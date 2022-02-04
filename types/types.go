@@ -16,10 +16,24 @@ type Session struct {
 	Expires time.Time `bson:"expires"`
 }
 
-type Chat struct {
-	Message   string `bson:"message" json:"message"`
-	UserID    string `bson:"userID"  json:"userID"`
-	Username  string
-	StaffRole string
-	Time      time.Time `bson:"time"    json:"time"`
+type GeneralChat struct {
+	Message   string    `bson:"message" json:"chat"`
+	UserID    string    `bson:"userID"  json:"userID"`
+	Username  string    `bson:"username" json:"userName"`
+	StaffRole string    `bson:"staffRole" json:"staffRole"`
+	Timestamp time.Time `bson:"timestamp"    json:"timestamp"`
+}
+
+type GeneralChats struct {
+	List   []GeneralChat `bson:"list" json:"list"`
+	Sticky string        `bson:"sticky" json:"sticky"`
+}
+
+type GameChat struct {
+	Message   string    `bson:"message" json:"chat"`
+	UserID    string    `bson:"userID"  json:"userID"`
+	Username  string    `bson:"username" json:"userName"`
+	StaffRole string    `bson:"staffRole" json:"staffRole"`
+	Timestamp time.Time `bson:"timestamp"    json:"timestamp"`
+	GameID    string    `bson:"gameID" json:"uid"`
 }
