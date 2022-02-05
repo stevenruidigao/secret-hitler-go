@@ -89,7 +89,7 @@ func SendUserList(socket socketio.Conn) {
 func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override string) {
 	UserMapMutex.RLock()
 
-	for key, _ := range UserMap {
+	for key := range UserMap {
 		if UserMap[key].UserID == user.UserID {
 			statusType := override
 

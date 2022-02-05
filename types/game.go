@@ -121,7 +121,7 @@ type GeneralGameSettings struct {
 	Players                 []UserPublic           `bson:"players" json:"players"`
 	SeatedCount             int                    `bson:"seatedCount" json:"seatedCount"`
 	TimeAbandoned           *time.Time             `bson:"timeAbandoned" json:"timeAbandoned"`
-	Mutex                   sync.RWMutex           `bson:"mutex" json:"mutex"`
+	Mutex                   *sync.RWMutex          `bson:"mutex" json:"mutex"`
 	Map                     map[string]interface{} `bson:"map" json:"map"`
 	TimeStarted             time.Time              `bson:"timeStarted" json:"timeStarted"`
 }
@@ -164,6 +164,7 @@ type GamePublic struct {
 	PlayersState        []interface{}       `bson:"playersState"            json:"playersState"`
 	CardFlingerState    []interface{}       `bson:"cardFlingerState"        json:"cardFlingerState"`
 	TrackState          TrackState          `bson:"trackState"              json:"trackState"`
+	PlayerCounts        []int               `bson:"playerCounts" json:"playerCounts"`
 }
 
 type GamePrivate struct {

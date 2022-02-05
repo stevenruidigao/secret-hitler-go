@@ -1,12 +1,13 @@
 package utils
 
 import (
-	// "crypto/rand"
+	"crypto/rand"
 	"crypto/sha512"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	// "math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -43,23 +44,38 @@ func GetCookie(cookieString string, key string) string {
 	}
 }
 
+func RandInt(start uint32, stop uint32) uint64 {
+	bytes := make([]byte, 4)
+	rand.Read(bytes)
+	fmt.Println(binary.BigEndian.Uint32(bytes))
+	// fmt.Println(start, stop-start, binary.BigEndian.Uint64(bytes), binary.BigEndian.Uint64(bytes)*(stop-start), start+(binary.BigEndian.Uint64(bytes)*(stop-start))/18446744073709551615)
+	return uint64(start) + uint64(binary.BigEndian.Uint32(bytes))*uint64(stop-start)/4294967295
+	// 11537050802889002836
+	// 18446744073709551615
+	// 11750154010745732844
+	// 499711006744772735
+	// 4848356644344510913
+	// 13435754436415632515
+}
+
 func GenerateCombination(adjectives int, delimiter string, capitalize bool) string {
 	result := ""
 
 	for i := 0; i < adjectives; i++ {
+
 		if capitalize {
-			result += strings.Title(Adjectives[rand.Intn(len(Adjectives))]) + delimiter
+			result += strings.Title(Adjectives[RandInt(0, uint32(len(Adjectives)))]) + delimiter
 
 		} else {
-			result += strings.ToLower(Adjectives[rand.Intn(len(Adjectives))]) + delimiter
+			result += strings.ToLower(Adjectives[RandInt(0, uint32(len(Adjectives)))]) + delimiter
 		}
 	}
 
 	if capitalize {
-		result += strings.Title(Animals[rand.Intn(len(Animals))])
+		result += strings.Title(Animals[RandInt(0, uint32(len(Animals)))])
 
 	} else {
-		result += strings.ToLower(Animals[rand.Intn(len(Animals))])
+		result += strings.ToLower(Animals[RandInt(0, uint32(len(Animals)))])
 	}
 
 	return result

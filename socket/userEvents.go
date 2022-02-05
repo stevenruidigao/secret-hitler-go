@@ -8,7 +8,8 @@ import (
 
 	"fmt"
 	"math"
-	"strconv"
+	// "strconv"
+	"sync"
 	"time"
 
 	"github.com/googollee/go-socket.io"
@@ -154,6 +155,7 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 			Players:                 []types.UserPublic{user},
 			SeatedCount:             1,
 			Map:                     map[string]interface{}{user.UserID: 0},
+			Mutex:                   &sync.RWMutex{},
 		},
 		CustomGameSettings: customGameSettings,
 		/*type PlayerState struct {
@@ -169,19 +171,21 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 			PreviousGovernmentStatus string `bson:"previousGovernmentStatus" json:"previousGovernmentStatus"`
 			GovernmentStatus         string `bson:"governmentStatus" json:"governmentStatus"`
 		}*/
-		PublicPlayersState: []types.PlayerState{types.PlayerState{
-			UserID:                   user.UserID,
-			Connected:                true,
-			LeftGame:                 false,
-			CustomCardback:           "",
-			CustomCardbackID:         "",
-			IsLoader:                 false,
-			IsRemakeVoting:           false,
-			PingTime:                 0,
-			Username:                 user.Username,
-			PreviousGovernmentStatus: "",
-			GovernmentStatus:         "",
-		}},
+		PublicPlayersState: []types.PlayerState{
+			types.PlayerState{
+				UserID:                   user.UserID,
+				Connected:                true,
+				LeftGame:                 false,
+				CustomCardback:           "",
+				CustomCardbackID:         "",
+				IsLoader:                 false,
+				IsRemakeVoting:           false,
+				PingTime:                 0,
+				Username:                 user.Username,
+				PreviousGovernmentStatus: "",
+				GovernmentStatus:         "",
+			},
+		},
 		PlayersState:     []interface{}{},
 		CardFlingerState: []interface{}{},
 		TrackState: types.TrackState{
@@ -214,8 +218,9 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 		return
 	}
 
+	newGame.PlayerCounts = playerCounts
 	newGame.PlayerCount = len(newGame.PublicPlayersState)
-	newGame.GeneralGameSettings.Status = "Waiting for " + strconv.Itoa(playerCounts[0]-newGame.PlayerCount) + " more players..."
+	newGame.GeneralGameSettings.Status = DisplayWaitingForPlayers(&newGame)
 
 	if newGame.GeneralGameSettings.Private {
 		fmt.Println("private", newGame.GeneralGameSettings.Private, data["unlistedGame"], data["privatePassword"], data["privatePassword"] != false)
@@ -307,12 +312,19 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 }
 
 func AddNewGameChat(socket socketio.Conn, user *types.UserPublic, data map[string]interface{}, game *types.GamePrivate) {
-	fmt.Println("AddNewGameChat", data)
+	if game == nil || game.GamePublic.GeneralGameSettings.Mutex == nil {
+		return
+	}
 
+	fmt.Println("AddNewGameChat", data)
 	chat, ok := data["chat"].(string)
+	// mutex := game.GamePublic.GeneralGameSettings.Mutex
+	// fmt.Println("*", mutex)
 
 	if ok {
 		game.GamePublic.GeneralGameSettings.Mutex.Lock()
+		fmt.Println("still adding...")
+
 		game.GamePublic.Chats = append(game.GamePublic.Chats, types.GameChat{
 			Username:  user.Username,
 			UserID:    user.UserID,
@@ -321,8 +333,8 @@ func AddNewGameChat(socket socketio.Conn, user *types.UserPublic, data map[strin
 			Timestamp: time.Now(),
 			GameID:    game.ID,
 		})
-		game.GamePublic.GeneralGameSettings.Mutex.Unlock()
 
+		game.GamePublic.GeneralGameSettings.Mutex.Unlock()
 		GameMapMutex.Lock()
 		GameMap[game.GamePublic.ID] = *game
 		GameMapMutex.Unlock()
@@ -330,7 +342,7 @@ func AddNewGameChat(socket socketio.Conn, user *types.UserPublic, data map[strin
 		fmt.Println("Added new game chat")
 		game.GamePublic.GeneralGameSettings.Mutex.RLock()
 		IO.BroadcastToRoom("/", "game-"+game.GamePublic.ID, "playerChatUpdate", game.GamePublic.Chats[len(game.GamePublic.Chats)-1])
-		game.GamePublic.GeneralGameSettings.Mutex.RLock()
+		game.GamePublic.GeneralGameSettings.Mutex.RUnlock()
 		// IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game)
 	}
 }
@@ -358,6 +370,10 @@ func AddNewGeneralChat(socket socketio.Conn, user *types.UserPublic, data map[st
 }
 
 func UpdateSeatedUser(socket socketio.Conn, user *types.UserPublic, data map[string]interface{}) {
+	if user == nil {
+		return
+	}
+
 	id, ok := data["uid"].(string)
 
 	if !ok {
@@ -378,8 +394,38 @@ func UpdateSeatedUser(socket socketio.Conn, user *types.UserPublic, data map[str
 		}
 	}
 
-	game.GamePublic.GeneralGameSettings.Players[game.GamePublic.PlayerCount] = *user
+	game.GamePublic.GeneralGameSettings.Players = append(game.GamePublic.GeneralGameSettings.Players, *user)
+	game.GamePublic.PublicPlayersState = append(game.GamePublic.PublicPlayersState, types.PlayerState{
+		UserID:                   user.UserID,
+		Connected:                true,
+		LeftGame:                 false,
+		CustomCardback:           "",
+		CustomCardbackID:         "",
+		IsLoader:                 false,
+		IsRemakeVoting:           false,
+		PingTime:                 0,
+		Username:                 user.Username,
+		PreviousGovernmentStatus: "",
+		GovernmentStatus:         "",
+	})
+
 	game.GamePublic.GeneralGameSettings.Map[user.UserID] = game.GamePublic.PlayerCount
 	game.GamePublic.PlayerCount++
-	socket.Emit("updateSeatForUser", true)
+	game.GamePublic.GeneralGameSettings.Status = DisplayWaitingForPlayers(&game.GamePublic)
+
+	GameMapMutex.Lock()
+	GameMap[game.GamePublic.ID] = game
+	GameMapMutex.Unlock()
+
+	GameMapMutex.RLock()
+	database.RedisDB.Set(ctx, "gamesMap", GameMap, 0)
+	GameMapMutex.RUnlock()
+
+	IO.BroadcastToRoom("/", "aem", "gameList", GetGameList(true))
+	IO.BroadcastToRoom("/", "users", "gameList", GetGameList(false))
+
+	IO.JoinRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID, socket)
+	socket.Emit("updateSeatForUser")
+	IO.BroadcastToRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
+	// socket.Emit("gameUpdate", game.GamePublic)
 }

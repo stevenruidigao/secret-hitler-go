@@ -243,15 +243,16 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 				switch key {
 				case "enableRightSidebarInGame":
 					user.GameSettings.RightSidebarInGame = value.(bool)
-					break
+
 				case "enableTimestamps":
 					user.GameSettings.Timestamps = value.(bool)
-					break
 				}
 			}
 
 			database.UpdateUserByID(user.UserPublic.UserID, user)
 		}
+
+		socket.Emit("gameSettings", user.GameSettings)
 	})
 
 	IO.OnError("/", func(socket socketio.Conn, err error) {
