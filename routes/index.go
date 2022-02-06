@@ -10,7 +10,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	// "html/template"
+	"html/template"
 	"net/http"
 
 	//	"strconv"
@@ -77,6 +77,11 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 	router.Handle("/404", Render("404")).Methods("GET")
 	router.Handle("/game/", Render("game")).Methods("GET")
 	router.Handle("/game/*", Render("game")).Methods("GET")
+	router.HandleFunc("/howtoplay", func(writer http.ResponseWriter, request *http.Request) {
+		tmpl := template.Must(template.ParseFiles("./views/layout.tmpl", "./views/page-howtoplay.tmpl"))
+		tmpl.Execute(writer, types.RenderData{})
+	})
+
 	router.Handle("/oauth-select-username", Render("page-new-username")).Methods("GET")
 
 	router.HandleFunc("/online-playercount", func(writer http.ResponseWriter, request *http.Request) {

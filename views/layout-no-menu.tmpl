@@ -52,7 +52,7 @@
         </script>
     </head>
     <body>
-        <div id="main"></div>
+        <div id="main">{{ block "content" . }}{{ end }}</div>
         <noscript>
             <h3 style="text-align: center; margin-top: 10%;">This website requires <a href="https://www.enable-javascript.com/" rel="noopener noreferrer">Javascript enabled</a> to function.</h3>
         </noscript>
