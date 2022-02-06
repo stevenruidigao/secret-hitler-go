@@ -108,6 +108,7 @@ type UserPrivate struct {
 	TournamentMod        bool                 `bson:"tournamentMod"        json:"tournamentMod,omitempty"`
 	TimeLastGameCreated  time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
 	Profile              Profile              `bson:"profile"              json:"profile"`
+	FinishedSignup       bool                 `bson:"finishedSignup" json:"finishedSignup"`
 }
 
 type ExtendedUser struct {

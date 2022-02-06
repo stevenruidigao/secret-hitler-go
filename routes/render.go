@@ -24,7 +24,7 @@ func Render(tmplName string) http.Handler {
 		if session != nil {
 			result := database.GetUserByID(session.UserID)
 
-			if result != nil {
+			if result != nil && result.FinishedSignup {
 				user = *result
 			}
 		}

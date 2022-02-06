@@ -7,12 +7,12 @@
         <meta name="description" content="A web adaptation of the social deduction board game Secret Hitler.  Always free and no ads."/>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
         <link rel="stylesheet" type="text/css" href="/styles/Semantic-UI-CSS-master/semantic.min.css"/>
-        {{ if game }}{{ if prodCacheBustToken }}
-        <link rel="stylesheet" type="text/css" href="{{ print `/styles/style-main.css?`+prodCacheBustToken+`` }}"/>
+        {{ if .Game }}{{ if .ProdCacheBustToken }}
+        <link rel="stylesheet" type="text/css" href="/styles/style-main.css?{{ .ProdCacheBustToken }}"/>
         {{ else }}
         <link rel="stylesheet" type="text/css" href="/styles/style-dark.css"/>
-        {{ end }}{{ else }}{{ if prodCacheBustToken }}
-        <link rel="stylesheet" type="text/css" href="{{ print `/styles/style-web.css?`+prodCacheBustToken+`` }}"/>
+        {{ end }}{{ else }}{{ if .ProdCacheBustToken }}
+        <link rel="stylesheet" type="text/css" href="/styles/style-web.css?{{ .ProdCacheBustToken }}"/>
         {{ else }}
         <link rel="stylesheet" type="text/css" href="/styles/style-web.css"/>
         {{ end }}{{ end }}
@@ -61,55 +61,55 @@
                 <div class="ui hidden message">Successfully updated your username!</div>
             </form>
         </div>
-        <div class="ui left vertical inverted menu sidebar">{{ if home }}
+        <div class="ui left vertical inverted menu sidebar">{{ if .Home }}
             <a class="active item">Home</a>
             {{ else }}
             <a class="item" href="/">Home</a>
-            {{ end }}{{ if username }}
+            {{ end }}{{ if .Username }}
             <a class="item" href="/game/">Game Lobby</a>
             {{ else }}
             <a class="item" href="/observe/">Game Lobby</a>
-            {{ end }}{{ if changelog }}
+            {{ end }}{{ if .Changelog }}
             <a class="active item">Changelog</a>
             {{ else }}
             <a class="item" href="/changelog">Changelog</a>
-            {{ end }}{{ if rules }}
+            {{ end }}{{ if .Rules }}
             <a class="active item">Rules</a>
             {{ else }}
             <a class="item" href="/rules">Rules</a>
-            {{ end }}{{ if howtoplay }}
+            {{ end }}{{ if .Howtoplay }}
             <a class="active item">How to Play</a>
             {{ else }}
             <a class="item" href="/how-to-play">How to Play</a>
-            {{ end }}{{ if stats }}
+            {{ end }}{{ if .Stats }}
             <a class="active item">Stats</a>
             {{ else }}
             <a class="item" href="/stats">Stats</a>
-            {{ end }}{{ if wiki }}
+            {{ end }}{{ if .Wiki }}
             <a class="active item">Wiki</a>
             {{ else }}
             <a class="item" href="https://github.com/cozuya/secret-hitler/wiki">Wiki</a>
-            {{ end }}{{ if discord }}
+            {{ end }}{{ if .Discord }}
             <a class="active item">Discord</a>
             {{ else }}
             <a class="item" href="https://discord.gg/secrethitlerio">Discord</a>
-            {{ end }}{{ if github }}
+            {{ end }}{{ if .Github }}
             <a class="active item">GitHub</a>
             {{ else }}
             <a class="item" href="https://github.com/cozuya/secret-hitler">GitHub</a>
-            {{ end }}{{ if tou }}
+            {{ end }}{{ if .Tou }}
             <a class="active item">Terms of Use</a>
             {{ else }}
             <a class="item" href="/tou">Terms of Use</a>
-            {{ end }}{{ if about }}
+            {{ end }}{{ if .About }}
             <a class="active item">About</a>
             {{ else }}
             <a class="item" href="/about">About</a>
             {{ end }}
         </div>
-        <div class="pusher">{{ if !game }}
+        <div class="pusher">{{ if not .Game }}
             <nav class="ui secondary pointing top fixed inverted menu" id="top-menu">
-                <div class="left menu" id="window-block">{{ if username }}
+                <div class="left menu" id="window-block">{{ if .Username }}
                     <a class="ui button" href="/game/">Game Lobby</a>
                     {{ else }}
                     <a class="ui button" href="/observe/">Game Lobby</a>
@@ -118,46 +118,46 @@
                 <div class="left menu" id="mobile-block">
                     <a class="ui button" id="menupopout">Menu</a>
                 </div>
-                {{ if home }}
+                {{ if .Home }}
                 <a class="active item">Home</a>
                 {{ else }}
                 <a class="item" href="/">Home</a>
-                {{ end }}{{ if rules }}
+                {{ end }}{{ if .Rules }}
                 <a class="active item">Rules</a>
                 {{ else }}
                 <a class="item" href="/rules">Rules</a>
-                {{ end }}{{ if howtoplay }}
+                {{ end }}{{ if .Howtoplay }}
                 <a class="active item">How to Play</a>
                 {{ else }}
                 <a class="item" href="/how-to-play">How to Play</a>
-                {{ end }}{{ if stats }}
+                {{ end }}{{ if .Stats }}
                 <a class="active item">Stats</a>
                 {{ else }}
                 <a class="item" href="/stats">Stats</a>
-                {{ end }}{{ if wiki }}
+                {{ end }}{{ if .Wiki }}
                 <a class="active item">Wiki</a>
                 {{ else }}
                 <a class="item" href="https://github.com/cozuya/secret-hitler/wiki">Wiki</a>
-                {{ end }}{{ if discord }}
+                {{ end }}{{ if .Discord }}
                 <a class="active item">Discord</a>
                 {{ else }}
                 <a class="item" href="https://discord.gg/secrethitlerio">Discord</a>
-                {{ end }}{{ if github }}
+                {{ end }}{{ if .Github }}
                 <a class="active item">GitHub</a>
                 {{ else }}
                 <a class="item" href="https://github.com/cozuya/secret-hitler">GitHub</a>
-                {{ end }}{{ if tou }}
+                {{ end }}{{ if .Tou }}
                 <a class="active item">Terms of Use</a>
                 {{ else }}
                 <a class="item" href="/tou">Terms of Use</a>
-                {{ end }}{{ if about }}
+                {{ end }}{{ if .About }}
                 <a class="active item">About</a>
                 {{ else }}
                 <a class="item" href="/about">About</a>
-                {{ end }}{{ if username }}
+                {{ end }}{{ if .Username }}
                 <div class="item right">
                     <a class="right" id="logout" href="#" style="margin-right: 20px;">Logout</a>
-                    <a class="right" href="/account" style="color: #85d42a">{{ username + "\'s account" }}</a>
+                    <a class="right" href="/account" style="color: #85d42a">{{ .Username }}'s account</a>
                 </div>
                 {{ else }}
                 <div class="right menu">
@@ -379,4 +379,3 @@
         <script src="/scripts/site.js"></script>
     </body>
 </html>
-

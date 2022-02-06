@@ -18,6 +18,10 @@ func GetGameList(isAEM bool) []types.GeneralGameSettings {
 	for _, game := range GameMap {
 		if !game.GamePublic.GeneralGameSettings.Private || isAEM {
 			viewableList = append(viewableList, game.GamePublic.GeneralGameSettings)
+
+			if !isAEM {
+				viewableList[len(viewableList)-1].GameCreatorName = ""
+			}
 		}
 	}
 

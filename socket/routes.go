@@ -59,7 +59,13 @@ func GetUser(socket socketio.Conn) *types.UserPrivate {
 		return nil
 	}
 
-	return database.GetUserByID(session.UserID)
+	user := database.GetUserByID(session.UserID)
+
+	if user == nil || !user.FinishedSignup {
+		return nil
+	}
+
+	return user
 }
 
 func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.HandlerFunc {

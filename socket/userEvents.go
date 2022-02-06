@@ -156,6 +156,7 @@ func AddNewGame(socket socketio.Conn, user types.UserPublic, data map[string]int
 			SeatedCount:             1,
 			Map:                     map[string]interface{}{user.UserID: 0},
 			Mutex:                   &sync.RWMutex{},
+			GameCreatorName:         user.Username,
 		},
 		CustomGameSettings: customGameSettings,
 		/*type PlayerState struct {
@@ -410,7 +411,7 @@ func UpdateSeatedUser(socket socketio.Conn, user *types.UserPublic, data map[str
 	})
 
 	game.GamePublic.GeneralGameSettings.Map[user.UserID] = game.GamePublic.PlayerCount
-	game.GamePublic.PlayerCount++
+	game.GamePublic.PlayerCount = len(game.GamePublic.PublicPlayersState)
 	game.GamePublic.GeneralGameSettings.Status = DisplayWaitingForPlayers(&game.GamePublic)
 
 	GameMapMutex.Lock()

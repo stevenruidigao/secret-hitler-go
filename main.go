@@ -7,11 +7,10 @@ import (
 
 	"context"
 	"crypto/rand"
-	"encoding/binary"
+	// "encoding/binary"
 	"encoding/hex"
 	//	"encoding/json"
 	"fmt"
-	mathRand "math/rand"
 	"net/http"
 	// "os"
 	//	"strconv"
@@ -25,6 +24,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/github"
+	"github.com/markbates/goth/providers/google"
 	"github.com/spf13/viper"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,10 +61,12 @@ func main() {
 	redisPass, _ := viper.Get("REDIS_PASS").(string)
 	redisID, _ := viper.Get("REDIS_ID").(int)
 	oauthRedirectHost, _ := viper.Get("OAUTH_REDIRECT_HOST").(string)
-	discordKey, _ := viper.Get("DISCORD_KEY").(string)
-	discordSecret, _ := viper.Get("DISCORD_SECRET").(string)
-	githubKey, _ := viper.Get("GITHUB_KEY").(string)
-	githubSecret, _ := viper.Get("GITHUB_SECRET").(string)
+	discordKey, _ := viper.Get("DISCORD_CLIENT_ID").(string)
+	discordSecret, _ := viper.Get("DISCORD_CLIENT_SECRET").(string)
+	githubKey, _ := viper.Get("GITHUB_CLIENT_ID").(string)
+	githubSecret, _ := viper.Get("GITHUB_CLIENT_SECRET").(string)
+	googleKey, _ := viper.Get("GOOGLE_CLIENT_ID").(string)
+	googleSecret, _ := viper.Get("GOOGLE_CLIENT_SECRET").(string)
 	writeConfig, _ := viper.Get("WRITE_CONFIG").(bool)
 
 	if cacheToken == "" {
@@ -85,7 +87,7 @@ func main() {
 
 	bytes := make([]byte, 4)
 	rand.Read(bytes)
-	mathRand.Seed(int64(time.Now().Nanosecond()) + int64(binary.LittleEndian.Uint32(bytes)))
+	// mathRand.Seed(int64(time.Now().Nanosecond()) + int64(binary.LittleEndian.Uint32(bytes)))
 	routes.CacheToken = cacheToken
 	fmt.Println(env, routes.CacheToken)
 	uri := "mongodb://" + mongoDBHost + ":" + mongoDBPort + "/" + mongoDBName
@@ -118,8 +120,9 @@ func main() {
 	database.SetupDatabase(mongoDB, redisDB)
 
 	goth.UseProviders(
-		discord.New(discordKey, discordSecret, oauthRedirectHost+"/auth/discord/callback"),
+		discord.New(discordKey, discordSecret, oauthRedirectHost+"/auth/discord/callback", "identify", "email"),
 		github.New(githubKey, githubSecret, oauthRedirectHost+"/auth/github/callback"),
+		google.New(googleKey, googleSecret, oauthRedirectHost+"/auth/google/callback"),
 	)
 
 	oauthProviderMap := make(map[string]string)

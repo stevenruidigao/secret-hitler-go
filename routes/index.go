@@ -14,7 +14,7 @@ import (
 	"net/http"
 
 	//	"strconv"
-	// "strings"
+	"strings"
 	"time"
 
 	//	"github.com/go-redis/redis/v8"
@@ -23,7 +23,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 
-	//	"github.com/markbates/goth"
+	// "github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,6 +77,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 	router.Handle("/404", Render("404")).Methods("GET")
 	router.Handle("/game/", Render("game")).Methods("GET")
 	router.Handle("/game/*", Render("game")).Methods("GET")
+	router.Handle("/oauth-select-username", Render("page-new-username")).Methods("GET")
 
 	router.HandleFunc("/online-playercount", func(writer http.ResponseWriter, request *http.Request) {
 		data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
@@ -162,7 +163,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			},
 		}
 
-		// fmt.Println(cursor.Err(), user, user.NickName, user.Name, "**")
+		// fmt.Println(cursor.Err(), user, user.NickName, user.Name, user.Email, "**")
 
 		if cursor.Err() == mongo.ErrNoDocuments {
 			localUser.UserPublic.Username = user.NickName
@@ -171,11 +172,16 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 				localUser.UserPublic.Username = user.Name
 			}
 
-			localUser = RegisterUser(localUser.Username)
+			if localUser.Username == "" {
+				localUser.UserPublic.Username = strings.Split(user.Email, "@")[0]
+			}
 
-			if localUser == nil {
-				writer.Header().Set("Location", "/")
-				writer.WriteHeader(http.StatusTemporaryRedirect)
+			localUser = RegisterUser(localUser.Username)
+			localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
+			localUser.Email = user.Email
+
+			if localUser.Email != "" {
+				localUser.UserPublic.Verified = true
 			}
 
 		} else if cursor.Err() == nil {
@@ -184,18 +190,22 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 		} else {
 			writer.Header().Set("Location", "/")
 			writer.WriteHeader(http.StatusTemporaryRedirect)
+			return
 		}
 
-		localSession.UserID = localUser.UserPublic.UserID
-		localSession.Expires = time.Now().Add(7 * 24 * time.Hour)
-		database.MongoDB.Collection("Sessions").InsertOne(ctx, localSession)
-		localUser.Sessions = append(localUser.Sessions, localSession)
-		localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
+		AddSessionToUser(&localSession, localUser)
 		database.UpdateUserByID(localUser.UserPublic.UserID, localUser)
 		session, _ := Store.Get(request, "sh-session")
 		session.Values["session"] = localSession
 		_ = session.Save(request, writer)
-		writer.Header().Set("Location", "/game/")
-		writer.WriteHeader(http.StatusTemporaryRedirect)
+
+		if localUser.FinishedSignup {
+			writer.Header().Set("Location", "/game/")
+			writer.WriteHeader(http.StatusTemporaryRedirect)
+
+		} else {
+			writer.Header().Set("Location", "/oauth-select-username")
+			writer.WriteHeader(http.StatusTemporaryRedirect)
+		}
 	})
 }

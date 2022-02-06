@@ -124,6 +124,7 @@ type GeneralGameSettings struct {
 	Mutex                   *sync.RWMutex          `bson:"mutex" json:"mutex"`
 	Map                     map[string]interface{} `bson:"map" json:"map"`
 	TimeStarted             time.Time              `bson:"timeStarted" json:"timeStarted"`
+	GameCreatorName         string                 `bson:"gameCreatorName" json:"gameCreatorName,omitempty"`
 }
 
 type GamePublic struct {
