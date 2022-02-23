@@ -36,35 +36,39 @@ func GetUserList(isAEM bool) interface{} {
 	for _, user := range UserMap {
 		// fmt.Println(user)
 
+		if user == nil {
+			continue
+		}
+
 		if !user.GameSettings.Incognito || isAEM {
 			viewableList = append(viewableList, types.UserPublic{
-				ID:            user.ID,
-				Username:      user.Username,
-				Created:       user.Created,
-				Wins:          user.Wins,
-				Losses:        user.Losses,
-				RainbowWins:   user.RainbowWins,
-				RainbowLosses: user.RainbowLosses,
-				GameSettings: types.GameSettings{
-					Private:           user.GameSettings.Private,
-					DisableVisibleElo: user.GameSettings.DisableVisibleElo,
-					DisableStaffColor: user.GameSettings.DisableStaffColor,
-					// Blacklists are sent in the sendUserGameSettings event.
-					// Blacklist: user.GameSettings.Blacklist,
-					Cardback:                user.GameSettings.Cardback,
-					CardbackID:              user.GameSettings.CardbackID,
-					TournyWins:              user.GameSettings.TournyWins,
-					SeasonAwards:            user.GameSettings.SeasonAwards,
-					SpecialTournamentStatus: user.GameSettings.SpecialTournamentStatus,
-					Incognito:               user.GameSettings.Incognito,
-				},
-				EloOverall:          math.Floor(user.EloOverall),
-				EloSeason:           math.Floor(user.EloSeason),
-				Status:              user.Status,
-				Seasons:             user.Seasons,
-				TimeLastGameCreated: user.TimeLastGameCreated,
-				StaffRole:           user.StaffRole,
-				Contributor:         user.Contributor,
+				ID:            user.UserPublic.ID,
+				Username:      user.UserPublic.Username,
+				Created:       user.UserPublic.Created,
+				Wins:          user.UserPublic.Wins,
+				Losses:        user.UserPublic.Losses,
+				RainbowWins:   user.UserPublic.RainbowWins,
+				RainbowLosses: user.UserPublic.RainbowLosses,
+				// GameSettings: types.GameSettings{
+				// 	Private:           user.GameSettings.Private,
+				// 	DisableVisibleElo: user.GameSettings.DisableVisibleElo,
+				// 	DisableStaffColor: user.GameSettings.DisableStaffColor,
+				// 	// Blacklists are sent in the sendUserGameSettings event.
+				// 	// Blacklist: user.GameSettings.Blacklist,
+				// 	Cardback:                user.GameSettings.Cardback,
+				// 	CardbackID:              user.GameSettings.CardbackID,
+				// 	TournyWins:              user.GameSettings.TournyWins,
+				// 	SeasonAwards:            user.GameSettings.SeasonAwards,
+				// 	SpecialTournamentStatus: user.GameSettings.SpecialTournamentStatus,
+				// 	Incognito:               user.GameSettings.Incognito,
+				// },
+				EloOverall:          math.Floor(user.UserPublic.EloOverall),
+				EloSeason:           math.Floor(user.UserPublic.EloSeason),
+				Status:              user.UserPublic.Status,
+				Seasons:             user.UserPublic.Seasons,
+				TimeLastGameCreated: user.UserPublic.TimeLastGameCreated,
+				StaffRole:           user.UserPublic.StaffRole,
+				Contributor:         user.UserPublic.Contributor,
 			})
 		}
 	}

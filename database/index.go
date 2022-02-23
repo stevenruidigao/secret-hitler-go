@@ -5,6 +5,7 @@ import (
 
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 
@@ -37,7 +38,24 @@ func GetUserByID(userID string) *types.UserPrivate {
 		return nil
 	}
 
-	user := types.UserPrivate{}
+	user := types.UserPrivate{
+		UserPublic: types.UserPublic{
+			Created:    time.Now(),
+			EloOverall: 1600,
+			EloSeason:  1600,
+			Status:     nil,
+			Profile: types.Profile{
+				Created:       time.Now(),
+				LastConnected: time.Now(),
+				Badges:        []types.Badge{},
+				RecentGames:   []types.RecentGame{},
+			},
+		},
+		GameSettings: types.GameSettings{
+			Blacklist: []string{},
+		},
+	}
+
 	cursor.Decode(&user)
 
 	return &user

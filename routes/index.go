@@ -151,6 +151,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			PasswordHash: utils.Argon2(signupOptions.Password, salt),
 			Salt:         salt,
 			Email:        signupOptions.Email,
+			Local:        true,
 		}
 
 		user = RegisterUser(user)
@@ -327,18 +328,21 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 		if cursor.Err() == mongo.ErrNoDocuments {
 			if localSession != nil {
 				localUser := database.GetUserByID(localSession.UserID)
-				localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
 
-				if user.Email != "" && localUser.Email == "" {
-					localUser.Email = user.Email
-					localUser.Verified = true
+				if localUser != nil {
+					localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
+
+					if user.Email != "" && localUser.Email == "" {
+						localUser.Email = user.Email
+						localUser.Verified = true
+					}
+
+					database.UpdateUserByID(localUser.UserPublic.ID, localUser)
+					writer.Header().Set("Location", "/game/")
+					writer.WriteHeader(http.StatusTemporaryRedirect)
+
+					return
 				}
-
-				database.UpdateUserByID(localUser.UserPublic.ID, localUser)
-				writer.Header().Set("Location", "/game/")
-				writer.WriteHeader(http.StatusTemporaryRedirect)
-
-				return
 			}
 
 			localUser.UserPublic.Username = user.NickName

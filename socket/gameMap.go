@@ -6,5 +6,5 @@ import (
 	"sync"
 )
 
-var GameMap = map[string]types.GamePrivate{}
+var GameMap = map[string]*types.GamePrivate{}
 var GameMapMutex = sync.RWMutex{}

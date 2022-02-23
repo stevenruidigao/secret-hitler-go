@@ -20,6 +20,10 @@ func RegisterUser(user *types.UserPrivate) *types.UserPrivate {
 
 	user.UserPublic.Username = strings.ReplaceAll(user.UserPublic.Username, " ", "-")
 
+	if user.UserPublic.Username == "" {
+		return nil
+	}
+
 	cursor := database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
 		"userPublic.username": user.UserPublic.Username,
 	})
@@ -60,7 +64,7 @@ func RegisterUser(user *types.UserPrivate) *types.UserPrivate {
 	user.UserPublic.Profile.LastConnected = time.Now()
 	user.UserPublic.Profile.Badges = []types.Badge{}
 	user.UserPublic.Profile.RecentGames = []types.RecentGame{}
-	user.UserPublic.GameSettings.Blacklist = []string{}
+	user.GameSettings.Blacklist = []string{}
 	user.FinishedSignup = ok
 	database.MongoDB.Collection("Users").InsertOne(ctx, user)
 	return user

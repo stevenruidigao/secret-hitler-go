@@ -113,7 +113,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			fmt.Println("*", data, playerCount)
 			database.RedisDB.Set(ctx, "playerCount", data, 0)
 			UserMapMutex.Lock()
-			UserMap[user.UserPublic.ID] = user.UserPublic
+			UserMap[user.UserPublic.ID] = user
 			// fmt.Println("UserMap", UserMap)
 			UserMapMutex.Unlock()
 			fmt.Println("GameSettings", user.GameSettings)
@@ -157,26 +157,27 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 	IO.OnEvent("/", "getUserGameSettings", func(socket socketio.Conn, message string) {
 		user := GetUser(socket)
 
-		if user == nil {
-			socket.Emit("gameSettings", struct{}{})
-			return
-		}
+		if user != nil {
+			a, _ := utils.MarshalJSON(user.GameSettings)
+			fmt.Println("gameSettings:", user, "\n*", user.GameSettings, "\n**", user.GameSettings.Private, "\n***", user.GameSettings.Blacklist, "\n****", a)
+			socket.Emit("gameSettings", user.GameSettings)
 
-		// a, _ := utils.MarshalJSON(user.GameSettings)
-		// fmt.Println("gameSettings*", user, "*", user.GameSettings, "**", user.GameSettings.Private, "\n", a)
-		socket.Emit("gameSettings", user.GameSettings)
+		} else {
+			// socket.Emit("gameSettings", struct{}{})
+		}
 	})
 
 	IO.OnEvent("/", "addNewGame", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("AAaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\n\n\n\n\n\n\n")
-		// fmt.Println("addNewGame", data)
+		fmt.Println("addNewGame", data)
 		user := GetUser(socket)
+		// fmt.Println("addNewGame", data, user)
 
 		if user != nil {
-			AddNewGame(socket, user.UserPublic, data)
+			AddNewGame(socket, user, data)
 		}
 
-		socket.Emit("hi", "hi")
+		// socket.Emit("hi", "hi")
 	})
 
 	IO.OnEvent("/", "addNewGameChat", func(socket socketio.Conn, data map[string]interface{}) {
@@ -191,7 +192,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 				game := GameMap[id]
 				GameMapMutex.RUnlock()
 
-				AddNewGameChat(socket, &user.UserPublic, data, &game)
+				AddNewGameChat(socket, &user.UserPublic, data, game)
 			}
 		}
 	})
