@@ -61,12 +61,12 @@ func main() {
 	redisPass, _ := viper.Get("REDIS_PASS").(string)
 	redisID, _ := viper.Get("REDIS_ID").(int)
 	oauthRedirectHost, _ := viper.Get("OAUTH_REDIRECT_HOST").(string)
-	discordKey, _ := viper.Get("DISCORD_CLIENT_ID").(string)
-	discordSecret, _ := viper.Get("DISCORD_CLIENT_SECRET").(string)
-	githubKey, _ := viper.Get("GITHUB_CLIENT_ID").(string)
-	githubSecret, _ := viper.Get("GITHUB_CLIENT_SECRET").(string)
-	googleKey, _ := viper.Get("GOOGLE_CLIENT_ID").(string)
-	googleSecret, _ := viper.Get("GOOGLE_CLIENT_SECRET").(string)
+	discordClientID, _ := viper.Get("DISCORD_CLIENT_ID").(string)
+	discordClientSecret, _ := viper.Get("DISCORD_CLIENT_SECRET").(string)
+	githubClientID, _ := viper.Get("GITHUB_CLIENT_ID").(string)
+	githubClientSecret, _ := viper.Get("GITHUB_CLIENT_SECRET").(string)
+	googleClientID, _ := viper.Get("GOOGLE_CLIENT_ID").(string)
+	googleClientSecret, _ := viper.Get("GOOGLE_CLIENT_SECRET").(string)
 	writeConfig, _ := viper.Get("WRITE_CONFIG").(bool)
 
 	if cacheToken == "" {
@@ -120,9 +120,9 @@ func main() {
 	database.SetupDatabase(mongoDB, redisDB)
 
 	goth.UseProviders(
-		discord.New(discordKey, discordSecret, oauthRedirectHost+"/auth/discord/callback", "identify", "email"),
-		github.New(githubKey, githubSecret, oauthRedirectHost+"/auth/github/callback"),
-		google.New(googleKey, googleSecret, oauthRedirectHost+"/auth/google/callback"),
+		discord.New(discordClientID, discordClientSecret, oauthRedirectHost+"/auth/discord/callback", discord.ScopeIdentify, discord.ScopeEmail),
+		github.New(githubClientID, githubClientSecret, oauthRedirectHost+"/auth/github/callback"),
+		google.New(googleClientID, googleClientSecret, oauthRedirectHost+"/auth/google/callback"),
 	)
 
 	oauthProviderMap := make(map[string]string)

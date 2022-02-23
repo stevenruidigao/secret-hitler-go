@@ -3,6 +3,8 @@ package types
 import (
 	"sync"
 	"time"
+
+	"github.com/googollee/go-socket.io"
 )
 
 type CustomDeckState struct {
@@ -32,6 +34,8 @@ type GameState struct {
 	UndrawnPolicyCount        int   `bson:"undrawnPolicyCount"        json:"undrawnPolicyCount"`
 	DiscardedPolicyCount      int   `bson:"discardedPolicyCount"      json:"discardedPolicyCount"`
 	PresidentIndex            int   `bson:"presidentIndex"            json:"presidentIndex"`
+	Started                   bool  `bson:"started" json:"isStarted"`
+	TracksFlipped             bool  `bson:"tracksFlipped" json:"isTracksFlipped"`
 }
 
 /*cardStatus: {cardDisplayed: false, isFlipped: false, cardFront: "ballot", cardBack: {cardName: "nein"}}
@@ -46,7 +50,7 @@ pingTime: 1643945968329
 previousGovernmentStatus: ""
 userName: "evanator5000"*/
 
-type CardStatus struct {
+type VoteCardStatus struct {
 	CardDisplayed bool   `bson:"cardDisplayed" json:"cardDisplayed"`
 	IsFlipped     bool   `bson:"isFlipped"     json:"isFlipped"`
 	CardFront     string `bson:"cardFront"     json:"cardFront"`
@@ -56,25 +60,53 @@ type CardStatus struct {
 }
 
 type PlayerState struct {
-	CardStatus               CardStatus `bson:"cardStatus" json:"cardStatus"`
-	UserID                   string     `bson:"userID" json:"userID"`
-	Connected                bool       `bson:"connected" json:"connected"`
-	LeftGame                 bool       `bson:"leftGame"  json:"leftGame"`
-	CustomCardback           string     `bson:"customCardback" json:"customCardback"`
-	CustomCardbackID         string     `bson:"customCardbackID" json:"customCardbackUid"`
-	IsLoader                 bool       `bson:"isLoader" json:"isLoader"`
-	IsRemakeVoting           bool       `bson:"isRemakeVoting" json:"isRemakeVoting"`
-	PingTime                 int64      `bson:"pingTime" json:"pingTime"`
-	Username                 string     `bson:"username" json:"userName"`
-	PreviousGovernmentStatus string     `bson:"previousGovernmentStatus" json:"previousGovernmentStatus"`
-	GovernmentStatus         string     `bson:"governmentStatus" json:"governmentStatus"`
+	CardStatus               PlayerCardStatus `bson:"cardStatus" json:"cardStatus"`
+	UserID                   string           `bson:"userID" json:"userID"`
+	Connected                bool             `bson:"connected" json:"connected"`
+	LeftGame                 bool             `bson:"leftGame"  json:"leftGame"`
+	CustomCardback           string           `bson:"customCardback" json:"customCardback"`
+	CustomCardbackID         string           `bson:"customCardbackID" json:"customCardbackUid"`
+	IsLoader                 bool             `bson:"isLoader" json:"isLoader"`
+	IsRemakeVoting           bool             `bson:"isRemakeVoting" json:"isRemakeVoting"`
+	PingTime                 int64            `bson:"pingTime" json:"pingTime"`
+	Username                 string           `bson:"username" json:"userName"`
+	PreviousGovernmentStatus string           `bson:"previousGovernmentStatus" json:"previousGovernmentStatus"`
+	GovernmentStatus         string           `bson:"governmentStatus" json:"governmentStatus"`
+	GameChats                []GameChat       `bson:"gameChats" json:"gameChats"`
+	WasInvestigated          bool             `bson:"wasInvestigated" json:"wasInvestigated"`
+}
+
+type Policy struct {
+	Cardback string `bson:"cardback" json:"cardBack"`
+	Flipped  string `bson:"flipped" json:"isFlipped"`
+	Position string `bson:"position" json:"position"`
 }
 
 type TrackState struct {
 	LiberalPolicyCount   int      `bson:"liberalPolicyCount"   json:"liberalPolicyCount"`
 	FascistPolicyCount   int      `bson:"fascistPolicyCount"   json:"fascistPolicyCount"`
 	ElectionTrackerCount int      `bson:"electionTrackerCount" json:"electionTrackerCount"`
-	EnactedPolicies      []string `bson:"enactedPolicies"      json:"enactedPolicies"`
+	EnactedPolicies      []Policy `bson:"enactedPolicies"      json:"enactedPolicies"`
+}
+
+type PlayerCardStatus struct {
+	Cardback      string `bson:"cardback" json:"cardBack"`
+	CardDisplayed bool   `bson:"cardDisplayed" json:"cardDisplayed"`
+}
+
+type Role struct {
+	CardName string `bson:"cardName" json:"cardName"`
+	Icon     int    `bson:"icon" json:"icon"`
+	Team     string `bson:"team" json:"team"`
+}
+
+type Player struct {
+	UserPublic
+	CardStatus PlayerCardStatus `bson:"cardStatus" json:"cardStatus"`
+	Role       Role             `bson:"role" json:"role"`
+	Socket     socketio.Conn    `bson:"-" json:"-"`
+	Connected  bool             `bson:"connected" json:"connected"`
+	LeftGame   bool             `bson:"leftGame" json:"leftGame"`
 }
 
 type GeneralGameSettings struct {
@@ -118,7 +150,7 @@ type GeneralGameSettings struct {
 	Usernames               []string               `bson:"usernames" json:"userNames"`
 	CustomCardback          []string               `bson:"customCardback" json:"customCardback"`
 	CustomCardbackUID       []string               `bson:"customCardbackUID" json:"customCardbackUid"`
-	Players                 []UserPublic           `bson:"players" json:"players"`
+	Players                 []Player               `bson:"players" json:"players"`
 	SeatedCount             int                    `bson:"seatedCount" json:"seatedCount"`
 	TimeAbandoned           *time.Time             `bson:"timeAbandoned" json:"timeAbandoned"`
 	Mutex                   *sync.RWMutex          `bson:"mutex" json:"mutex"`
@@ -153,14 +185,14 @@ type GamePublic struct {
 	Custom              bool                `bson:"custom"                  json:"custom"`
 	Unlisted            bool                `bson:"unlisted"                json:"unlistedGame"`
 	VerifiedOnly        bool                `bson:"verifiedOnly"            json:"isVerifiedOnly"`
-	Chats               []GameChat          `bson:"chats"                   json:"chats"`
+	Chats               []PlayerChat        `bson:"chats"                   json:"chats"`
 	Guesses             map[string]string   `bson:"guesses"                 json:"guesses"`
 	Timer               int                 `bson:"timer"                   json:"timedMode"`
 	Blind               bool                `bson:"blind"                   json:"blindMode"`
 	Completed           bool                `bson:"completed"               json:"completed"`
 	GameState           GameState           `bson:"gameState"               json:"gameState"`
 	CustomGameSettings  CustomGameSettings  `bson:"customGameSettings"      json:"customGameSettings"`
-	PublicPlayersState  []PlayerState       `bson:"publicPlayersState"      json:"publicPlayersState"`
+	PublicPlayerStates  []PlayerState       `bson:"publicPlayerStates"      json:"publicPlayersState"`
 	GeneralGameSettings GeneralGameSettings `bson:"general"                 json:"general"`
 	PlayersState        []interface{}       `bson:"playersState"            json:"playersState"`
 	CardFlingerState    []interface{}       `bson:"cardFlingerState"        json:"cardFlingerState"`
@@ -171,18 +203,19 @@ type GamePublic struct {
 type GamePrivate struct {
 	GamePublic              `bson:"gamePublic" json:"gamePublic"`
 	Reports                 interface{}   `bson:"reports" json:"reports"`
-	UnseatedGameChats       []GameChat    `bson:"unseatedGameChats" json:"unseatedGameChats"`
-	CommandChats            []GameChat    `bson:"commandChats" json:"commandChats"`
-	ReplayGameChats         []GameChat    `bson:"replayGameChats" json:"replayGameChats"`
+	UnseatedGameChats       []PlayerChat  `bson:"unseatedGameChats" json:"unseatedGameChats"`
+	CommandChats            []PlayerChat  `bson:"commandChats" json:"commandChats"`
+	ReplayGameChats         []PlayerChat  `bson:"replayGameChats" json:"replayGameChats"`
 	Lock                    interface{}   `bson:"lock" json:"lock"`
 	VotesPeeked             bool          `bson:"votesPeeked" json:"votesPeeked"`
 	RemakeVotesPeeked       bool          `bson:"remakeVotesPeeked" json:"remakeVotesPeeked"`
 	InvIndex                int           `bson:"invIndex" json:"invIndex"`
-	HiddenInfoChat          []GameChat    `bson:"hiddenInfoChat" json:"hiddenInfoChat"`
+	HiddenInfoChat          []PlayerChat  `bson:"hiddenInfoChat" json:"hiddenInfoChat"`
 	HiddenInfoSubscriptions []interface{} `bson:"hiddenInfoSubscriptions" json:"hiddenInfoSubscriptions"`
 	HiddenInfoShouldNotify  bool          `bson:"hiddenInfoShouldNotify" json:"hiddenInfoShouldNotify"`
 	GameCreatorName         string        `bson:"gameCreatorName" json:"gameCreatorName"`
 	GameCreatorID           string        `bson:"gameCreatorID" json:"gameCreatorID"`
 	GameCreatorBlacklist    []string      `bson:"gameCreatorBlacklist" json:"gameCreatorBlacklist"`
 	PrivatePassword         string        `bson:"privatePassword" json:"privatePassword"`
+	SeatedPlayers           []PlayerState `bson:"seatedPlayers" json:"seatedPlayers"`
 }

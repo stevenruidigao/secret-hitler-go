@@ -29,11 +29,16 @@ type GeneralChats struct {
 	Sticky string        `bson:"sticky" json:"sticky"`
 }
 
-type GameChat struct {
+type PlayerChat struct {
 	Message   string    `bson:"message" json:"chat"`
 	UserID    string    `bson:"userID"  json:"userID"`
 	Username  string    `bson:"username" json:"userName"`
 	StaffRole string    `bson:"staffRole" json:"staffRole"`
 	Timestamp time.Time `bson:"timestamp"    json:"timestamp"`
 	GameID    string    `bson:"gameID" json:"uid"`
+}
+
+type GameChat struct {
+	Text string `bson:"text" json:"text"`
+	Type string `bson:"type" json:"type"`
 }

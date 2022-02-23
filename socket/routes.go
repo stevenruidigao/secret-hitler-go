@@ -113,10 +113,11 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			fmt.Println("*", data, playerCount)
 			database.RedisDB.Set(ctx, "playerCount", data, 0)
 			UserMapMutex.Lock()
-			UserMap[user.UserPublic.UserID] = user.UserPublic
+			UserMap[user.UserPublic.ID] = user.UserPublic
 			// fmt.Println("UserMap", UserMap)
 			UserMapMutex.Unlock()
-			socket.Emit("gameSettings", user.GameSettings)
+			fmt.Println("GameSettings", user.GameSettings)
+			socket.Emit("gameSettings", user.GameSettings, len(user.GameSettings.Blacklist))
 			UpdateUserStatus(&user.UserPublic, nil, "")
 		}
 
@@ -195,6 +196,10 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		}
 	})
 
+	// IO.OnEvent("/", "addNewGeneralChat", func(socket socketio.Conn, data interface{}) {
+	// 	fmt.Printf("addNewGeneralChat type: %T\n", data)
+	// })
+
 	IO.OnEvent("/", "addNewGeneralChat", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("addNewGeneralChat", data)
 		user := GetUser(socket)
@@ -233,7 +238,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		user.DismissedSignupModal = true
 
 		database.MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
-			"user.UserPublicID": user.UserPublic.UserID,
+			"user.UserPublic.ID": user.UserPublic.ID,
 		}, bson.M{
 			"$set": &user,
 		})
@@ -255,7 +260,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 				}
 			}
 
-			database.UpdateUserByID(user.UserPublic.UserID, user)
+			database.UpdateUserByID(user.UserPublic.ID, user)
 		}
 
 		socket.Emit("gameSettings", user.GameSettings)
@@ -277,23 +282,23 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 			fmt.Println("**", data, playerCount)
 			database.RedisDB.Set(ctx, "playerCount", data, 0)
 
-			if user.Status.Type == "playing" {
+			if user.Status != nil && user.Status.Type == "playing" {
 				GameMapMutex.RLock()
 				game := GameMap[user.Status.GameID]
 				GameMapMutex.RUnlock()
 
-				playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.UserID].(int)
+				playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.ID].(int)
 
 				if ok {
 					game.GamePublic.PlayerCount--
-					game.GamePublic.PublicPlayersState[playerNumber].Connected = false
+					game.GamePublic.PublicPlayerStates[playerNumber].Connected = false
 					IO.BroadcastToRoom("/", "game-"+game.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
 				}
 				// UpdateUserStatus(user.UserPublic, nil, "")
 			}
 
 			UserMapMutex.Lock()
-			delete(UserMap, user.UserPublic.UserID)
+			delete(UserMap, user.UserPublic.ID)
 			UserMapMutex.Unlock()
 
 			IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))

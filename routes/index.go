@@ -7,7 +7,9 @@ import (
 	"secrethitler.io/utils"
 
 	"context"
+	"crypto/rand"
 	"encoding/gob"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -80,9 +82,169 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 	router.HandleFunc("/howtoplay", func(writer http.ResponseWriter, request *http.Request) {
 		tmpl := template.Must(template.ParseFiles("./views/layout.tmpl", "./views/page-howtoplay.tmpl"))
 		tmpl.Execute(writer, types.RenderData{})
-	})
+	}).Methods("GET")
+	router.HandleFunc("/account", func(writer http.ResponseWriter, request *http.Request) {
+		tmpl := template.Must(template.ParseFiles("./views/layout.tmpl", "./views/page-account.tmpl"))
+		tmpl.Execute(writer, types.RenderData{Username: "example", Verified: true, Email: "example@example.com", DiscordUsername: "example", DiscordDiscriminator: "0000", GithubUsername: "example"})
+	}).Methods("GET")
 
 	router.Handle("/oauth-select-username", Render("page-new-username")).Methods("GET")
+
+	router.HandleFunc("/oauth-select-username", func(writer http.ResponseWriter, request *http.Request) {
+		session := Authenticate(request)
+
+		if session == nil {
+			return
+		}
+
+		user := database.GetUserByID(session.UserID)
+
+		if user == nil {
+			return
+		}
+
+		username := struct {
+			Username string `bson:"username" json:"username"`
+		}{}
+
+		json.NewDecoder(request.Body).Decode(&username)
+
+		UpdateUserUsername(user, username.Username)
+	}).Methods("POST")
+
+	router.HandleFunc("/account/signup", func(writer http.ResponseWriter, request *http.Request) {
+		// {username: "a", password: "", password2: "", email: "", isPrivate: false, bypass: ""}
+
+		signupOptions := struct {
+			Username             string `bson:"username" json:"username"`
+			Password             string `bson:"password" json:"password"`
+			PasswordConfirmation string `bson:"passwordConfirmation" json:"password2"`
+			Email                string `bson:"email" json:"email"`
+			Private              bool   `bson:"private" json:"isPrivate"`
+			BypassKey            string `bson:"bypassKey" json:"bypass"`
+		}{}
+
+		json.NewDecoder(request.Body).Decode(&signupOptions)
+
+		cursor := database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
+			"userPublic.username": signupOptions.Username,
+		})
+
+		if cursor.Err() != mongo.ErrNoDocuments {
+			utils.JSONResponse(writer, struct {
+				Message string `bson:"message" json:"message"`
+			}{
+				Message: "That account already exists.",
+			}, 401)
+
+			return
+		}
+
+		bytes := make([]byte, 32)
+		rand.Read(bytes)
+		salt := hex.EncodeToString(bytes)
+
+		user := &types.UserPrivate{
+			UserPublic: types.UserPublic{
+				Username: signupOptions.Username,
+			},
+			PasswordHash: utils.Argon2(signupOptions.Password, salt),
+			Salt:         salt,
+			Email:        signupOptions.Email,
+		}
+
+		user = RegisterUser(user)
+
+		if user == nil {
+			utils.JSONResponse(writer, struct {
+				Message string `bson:"message" json:"message"`
+			}{
+				Message: "Something went wrong.",
+			}, 500)
+		}
+
+		localSession := types.Session{
+			Token: uuid.NewString(),
+		}
+
+		AddSessionToUser(&localSession, user)
+		database.UpdateUserByID(user.UserPublic.ID, user)
+		session, _ := Store.Get(request, "sh-session")
+		session.Values["session"] = localSession
+		session.Save(request, writer)
+	})
+
+	router.HandleFunc("/account/signin", func(writer http.ResponseWriter, request *http.Request) {
+		loginOptions := struct {
+			Username string `bson:"username" json:"username"`
+			Password string `bson:"password" json:"password"`
+		}{}
+
+		json.NewDecoder(request.Body).Decode(&loginOptions)
+
+		cursor := database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
+			"userPublic.username": loginOptions.Username,
+		})
+
+		if cursor.Err() == mongo.ErrNoDocuments {
+			utils.JSONResponse(writer, struct {
+				Message string `bson:"message" json:"message"`
+			}{
+				Message: "That account doesn't exist.",
+			}, 401)
+
+			return
+		}
+
+		user := types.UserPrivate{
+			UserPublic: types.UserPublic{
+				Created:    time.Now(),
+				EloOverall: 1600,
+				EloSeason:  1600,
+				Status:     nil,
+				Profile: types.Profile{
+					Created:       time.Now(),
+					LastConnected: time.Now(),
+					Badges:        []types.Badge{},
+					RecentGames:   []types.RecentGame{},
+				},
+			},
+			GameSettings: types.GameSettings{
+				Blacklist: []string{},
+			},
+		}
+
+		cursor.Decode(&user)
+
+		if utils.Argon2(loginOptions.Password, user.Salt) != user.PasswordHash {
+			utils.JSONResponse(writer, struct {
+				Message string `bson:"message" json:"message"`
+			}{
+				Message: "That password is incorrect.",
+			}, 401)
+
+			return
+		}
+
+		localSession := types.Session{
+			Token:  uuid.NewString(),
+			UserID: user.UserPublic.ID,
+		}
+
+		AddSessionToUser(&localSession, &user)
+		database.UpdateUserByID(user.UserPublic.ID, &user)
+		session, _ := Store.Get(request, "sh-session")
+		session.Values["session"] = localSession
+		session.Save(request, writer)
+	}).Methods("POST")
+
+	router.HandleFunc("/logout", func(writer http.ResponseWriter, request *http.Request) {
+		session, _ := Store.Get(request, "sh-session")
+		session.Values["session"] = nil
+		session.Save(request, writer)
+		writer.Header().Set("Location", "/")
+		writer.WriteHeader(http.StatusTemporaryRedirect)
+	})
 
 	router.HandleFunc("/online-playercount", func(writer http.ResponseWriter, request *http.Request) {
 		data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
@@ -104,10 +266,11 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			return
 		}
 
-		var user types.UserPublic
+		var user types.UserPrivate
 		cursor.Decode(&user)
+		// str, _ := utils.MarshalJSON(types.Profile{})
 		// fmt.Println("*&&&&&", user, user.Profile, ";;;;;;;;;;", user.Profile.RecentGames, len(user.Profile.RecentGames))
-		utils.JSONResponse(writer, user.Profile, 200)
+		utils.JSONResponse(writer, user.UserPublic.Profile, 200)
 	})
 
 	router.Handle("/socket.io/", socket.SetupSocketRoutes(io, store))
@@ -134,43 +297,50 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			return
 		}
 
-		localSession := types.Session{
-			Token: uuid.NewString(),
-		}
-
-		cursor := database.MongoDB.Collection("Sessions").FindOne(ctx, localSession)
-
-		for cursor.Err() != mongo.ErrNoDocuments {
-			localSession.Token = uuid.NewString()
-			cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, localSession)
-		}
-
-		cursor = database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
+		cursor := database.MongoDB.Collection("Users").FindOne(ctx, bson.M{
 			"linkedAccounts.provider": user.Provider,
 			"linkedAccounts.userid":   user.UserID,
 		})
+
+		localSession := Authenticate(request)
 
 		localUser := &types.UserPrivate{
 			UserPublic: types.UserPublic{
 				Created:    time.Now(),
 				EloOverall: 1600,
 				EloSeason:  1600,
-				Status: types.UserStatus{
-					Type: "none",
+				Status:     nil,
+				Profile: types.Profile{
+					Created:       time.Now(),
+					LastConnected: time.Now(),
+					Badges:        []types.Badge{},
+					RecentGames:   []types.RecentGame{},
 				},
 			},
 			GameSettings: types.GameSettings{
 				Blacklist: []string{},
-			},
-			Profile: types.Profile{
-				Created:     time.Now(),
-				RecentGames: []types.GamePublic{},
 			},
 		}
 
 		// fmt.Println(cursor.Err(), user, user.NickName, user.Name, user.Email, "**")
 
 		if cursor.Err() == mongo.ErrNoDocuments {
+			if localSession != nil {
+				localUser := database.GetUserByID(localSession.UserID)
+				localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
+
+				if user.Email != "" && localUser.Email == "" {
+					localUser.Email = user.Email
+					localUser.Verified = true
+				}
+
+				database.UpdateUserByID(localUser.UserPublic.ID, localUser)
+				writer.Header().Set("Location", "/game/")
+				writer.WriteHeader(http.StatusTemporaryRedirect)
+
+				return
+			}
+
 			localUser.UserPublic.Username = user.NickName
 
 			if localUser.Username == "" {
@@ -181,7 +351,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 				localUser.UserPublic.Username = strings.Split(user.Email, "@")[0]
 			}
 
-			localUser = RegisterUser(localUser.Username)
+			localUser = RegisterUser(localUser)
 			localUser.LinkedAccounts = append(localUser.LinkedAccounts, user)
 			localUser.Email = user.Email
 
@@ -198,11 +368,22 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 			return
 		}
 
-		AddSessionToUser(&localSession, localUser)
-		database.UpdateUserByID(localUser.UserPublic.UserID, localUser)
+		localSession = &types.Session{
+			Token: uuid.NewString(),
+		}
+
+		cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, localSession)
+
+		for cursor.Err() != mongo.ErrNoDocuments {
+			localSession.Token = uuid.NewString()
+			cursor = database.MongoDB.Collection("Sessions").FindOne(ctx, localSession)
+		}
+
+		AddSessionToUser(localSession, localUser)
+		database.UpdateUserByID(localUser.UserPublic.ID, localUser)
 		session, _ := Store.Get(request, "sh-session")
 		session.Values["session"] = localSession
-		_ = session.Save(request, writer)
+		session.Save(request, writer)
 
 		if localUser.FinishedSignup {
 			writer.Header().Set("Location", "/game/")

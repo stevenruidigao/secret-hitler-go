@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-func DisplayWaitingForPlayers(game *types.GamePublic) string {
+func DisplayWaitingForPlayers(game *types.GamePrivate) string {
 	status := ""
-	currentPlayerCount := len(game.PublicPlayersState)
+	currentPlayerCount := len(game.GamePublic.PublicPlayerStates)
 
-	for _, playerCount := range game.PlayerCounts {
+	for _, playerCount := range game.GamePublic.PlayerCounts {
 		if playerCount > currentPlayerCount {
 			difference := playerCount - currentPlayerCount
 			status = "Waiting for " + strconv.Itoa(difference) + " more player"
@@ -25,11 +25,20 @@ func DisplayWaitingForPlayers(game *types.GamePublic) string {
 		}
 	}
 
-	Countdown(game, 20)
+	if game.GamePublic.GameState.Started {
+		return status
+	}
+
+	game.GamePublic.GameState.Started = true
+	StartGame(game)
 	return status
 }
 
 func Countdown(game *types.GamePublic, timer int) {
+	if timer == 0 {
+		return
+	}
+
 	game.GeneralGameSettings.Status = "Game starts in " + strconv.Itoa(timer) + " seconds"
 	IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game)
 

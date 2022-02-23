@@ -10,6 +10,6 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/markbates/goth v1.69.0
 	github.com/spf13/viper v1.10.1
-	go.mongodb.org/mongo-driver v1.8.2
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	go.mongodb.org/mongo-driver v1.8.3
+	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2
 )

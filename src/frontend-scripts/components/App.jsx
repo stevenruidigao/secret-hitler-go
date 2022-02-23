@@ -198,8 +198,6 @@ export class App extends React.Component {
 		});
 
 		socket.on('gameSettings', settings => {
-			// console.log(settings)
-
 			const { userInfo } = this.props;
 
 			userInfo.gameSettings = settings;

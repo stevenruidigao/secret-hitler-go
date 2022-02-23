@@ -38,7 +38,7 @@ func GetUserList(isAEM bool) interface{} {
 
 		if !user.GameSettings.Incognito || isAEM {
 			viewableList = append(viewableList, types.UserPublic{
-				UserID:        user.UserID,
+				ID:            user.ID,
 				Username:      user.Username,
 				Created:       user.Created,
 				Wins:          user.Wins,
@@ -94,7 +94,7 @@ func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override s
 	UserMapMutex.RLock()
 
 	for key := range UserMap {
-		if UserMap[key].UserID == user.UserID {
+		if UserMap[key].ID == user.ID {
 			statusType := override
 
 			if override == "" {
@@ -118,6 +118,15 @@ func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override s
 				gameID = game.GeneralGameSettings.ID
 			}
 
+			if user.Status == nil {
+				user.Status = &types.UserStatus{
+					Type:   statusType,
+					GameID: gameID,
+				}
+
+				break
+			}
+
 			user.Status.Type = statusType
 			user.Status.GameID = gameID
 			break
@@ -133,7 +142,7 @@ func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
 	GameMapMutex.RUnlock()
 
 	if user != nil {
-		playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.UserID].(int)
+		playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.ID].(int)
 
 		fmt.Println("Player number:", playerNumber)
 

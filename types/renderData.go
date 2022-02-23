@@ -28,9 +28,14 @@ type RenderData struct {
 	SecondaryTextColor         template.CSS
 	TertiaryTextColor          template.CSS
 	GameSettings               interface{}
-	Verified                   interface{}
+	Verified                   bool
 	StaffRole                  string
 	HasNotDismissedSignupModal interface{}
 	IsTournamentMod            interface{}
 	Blacklist                  interface{}
+	Email                      string
+	DiscordUsername            string
+	DiscordDiscriminator       string
+	GithubUsername             string
+	Local                      bool
 }
