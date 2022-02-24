@@ -146,13 +146,13 @@ func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
 	GameMapMutex.RUnlock()
 
 	if user != nil {
-		playerNumber, ok := game.GamePublic.GeneralGameSettings.Map[user.ID].(int)
+		playerNumber := game.GamePublic.PlayerMap[user.ID]
 
 		fmt.Println("Player number:", playerNumber)
 
-		if ok {
-			game.GamePublic.GeneralGameSettings.Players[playerNumber].LeftGame = false
-			game.GamePublic.GeneralGameSettings.Players[playerNumber].Connected = true
+		if playerNumber > 0 {
+			game.GamePublic.PublicPlayerStates[playerNumber-1].LeftGame = false
+			game.GamePublic.PublicPlayerStates[playerNumber-1].Connected = true
 
 			if game.GamePublic.GeneralGameSettings.TimeAbandoned != nil {
 				game.GamePublic.GeneralGameSettings.TimeAbandoned = nil

@@ -34,13 +34,19 @@ func DisplayWaitingForPlayers(game *types.GamePrivate) string {
 	return status
 }
 
-func Countdown(game *types.GamePublic, timer int) {
+func Countdown(game *types.GamePrivate, timer int) {
 	if timer == 0 {
+		BeginGame(game)
 		return
 	}
 
-	game.GeneralGameSettings.Status = "Game starts in " + strconv.Itoa(timer) + " seconds"
-	IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game)
+	game.GamePublic.GeneralGameSettings.Status = "Game starts in " + strconv.Itoa(timer) + " second"
+
+	if timer != 1 {
+		game.GamePublic.GeneralGameSettings.Status += "s"
+	}
+
+	IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game.GamePublic)
 
 	time.AfterFunc(1*time.Second, func() {
 		Countdown(game, timer-1)

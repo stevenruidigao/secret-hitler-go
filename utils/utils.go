@@ -47,7 +47,7 @@ func GetCookie(cookieString string, key string) string {
 func RandInt(start uint32, stop uint32) uint64 {
 	bytes := make([]byte, 4)
 	rand.Read(bytes)
-	fmt.Println(binary.BigEndian.Uint32(bytes))
+	// fmt.Println(binary.BigEndian.Uint32(bytes))
 	// fmt.Println(start, stop-start, binary.BigEndian.Uint64(bytes), binary.BigEndian.Uint64(bytes)*(stop-start), start+(binary.BigEndian.Uint64(bytes)*(stop-start))/18446744073709551615)
 	return uint64(start) + uint64(binary.BigEndian.Uint32(bytes))*uint64(stop-start)/4294967295
 	// 11537050802889002836

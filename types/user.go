@@ -108,4 +108,5 @@ type UserPrivate struct {
 	TimeLastGameCreated time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
 	// Profile             Profile              `bson:"profile"              json:"profile"`
 	FinishedSignup bool `bson:"finishedSignup" json:"finishedSignup"`
+	Connections    int  `bson:"-"                    json:"connections,omitempty"`
 }

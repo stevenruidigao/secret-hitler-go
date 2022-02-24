@@ -13,12 +13,14 @@ import (
 	"fmt"
 	"net/http"
 	// "os"
+	// "path/filepath"
 	//	"strconv"
 	"sort"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/googollee/go-socket.io"
+	"github.com/googollee/go-socket.io/engineio"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
@@ -135,7 +137,15 @@ func main() {
 	}
 
 	sort.Strings(oauthProviders)
-	io := socketio.NewServer(nil)
+
+	io := socketio.NewServer(&engineio.Options{
+		PingTimeout:  40 * time.Second,
+		PingInterval: 20 * time.Second,
+		// Transports:         []transport.Transport,
+		// SessionIDGenerator: session.IDGenerator,
+		// RequestChecker:     CheckerFunc,
+		// ConnInitor:         ConnInitorFunc,
+	})
 
 	store := sessions.NewCookieStore([]byte(sessionKey))
 	store.MaxAge(cookieMaxAge)
@@ -146,6 +156,10 @@ func main() {
 	router := mux.NewRouter()
 	routes.SetupRoutes(router, io, store)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./public")))
+	// router.PathPrefix("/").Handler(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	// 	writer.Header().Set("Cache-Control", "public, max-age=31536000")
+	// 	http.ServeFile(writer, request, filepath.Join("./public/", request.URL.Path))
+	// }))
 
 	go io.Serve()
 	defer io.Close()
