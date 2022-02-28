@@ -203,7 +203,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 				EloOverall: 1600,
 				EloSeason:  1600,
 				Status:     nil,
-				Profile: types.Profile{
+				Profile: &types.Profile{
 					Created:       time.Now(),
 					LastConnected: time.Now(),
 					Badges:        []types.Badge{},
@@ -311,7 +311,7 @@ func SetupRoutes(router *mux.Router, io *socketio.Server, store *sessions.Cookie
 				EloOverall: 1600,
 				EloSeason:  1600,
 				Status:     nil,
-				Profile: types.Profile{
+				Profile: &types.Profile{
 					Created:       time.Now(),
 					LastConnected: time.Now(),
 					Badges:        []types.Badge{},

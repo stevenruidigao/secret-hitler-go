@@ -160,15 +160,22 @@ func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
 
 			socket.Emit("updateSeatForUser", true)
 			UpdateUserStatus(user, &game.GamePublic, "playing")
+			IO.JoinRoom("/", "game-"+id, socket)
+			IO.JoinRoom("/", "game-"+game.GamePublic.ID+"-"+user.ID, socket)
+			SendInProgressGameUpdate(game)
+			socket.Emit("joinGameRedirect", id)
+			return
 
 		} else {
 			UpdateUserStatus(user, &game.GamePublic, "observing")
+			IO.JoinRoom("/", "game-"+game.GamePublic.ID+"-observer", socket)
 		}
 	}
 
 	fmt.Println("Updated user status")
 
 	IO.JoinRoom("/", "game-"+id, socket)
+	// IO.JoinRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID+"-observer", socket)
 	socket.Emit("gameUpdate", game.GamePublic)
 	socket.Emit("joinGameRedirect", id)
 }

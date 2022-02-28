@@ -68,7 +68,7 @@ type UserPublic struct {
 	TournamentMod       bool                 `bson:"tournamentMod"        json:"tournamentMod,omitempty"`
 	Status              *UserStatus          `bson:"-"                    json:"status,omitempty"`
 	TimeLastGameCreated time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
-	Profile             Profile              `bson:"profile"              json:"profile,omitempty"`
+	Profile             *Profile             `bson:"profile"              json:"profile,omitempty"`
 }
 
 type UserPrivate struct {

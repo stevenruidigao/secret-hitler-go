@@ -3,16 +3,20 @@ package types
 import (
 	"sync"
 	"time"
-	// "github.com/googollee/go-socket.io"
+
+	"github.com/googollee/go-socket.io"
 )
 
 type PlayerChat struct {
-	Message   string    `bson:"message"   json:"chat"`
-	UserID    string    `bson:"userID"    json:"userID"`
-	Username  string    `bson:"username"  json:"userName"`
-	StaffRole string    `bson:"staffRole" json:"staffRole"`
-	Timestamp time.Time `bson:"timestamp" json:"timestamp"`
-	GameID    string    `bson:"gameID"    json:"uid"`
+	// GameChats
+	// Message   string     `bson:"message"   json:"chat"`
+	UserID    string      `bson:"userID"    json:"userID"`
+	Username  string      `bson:"username"  json:"userName"`
+	StaffRole string      `bson:"staffRole" json:"staffRole"`
+	Timestamp time.Time   `bson:"timestamp" json:"timestamp"`
+	GameID    string      `bson:"gameID"    json:"uid"`
+	GameChat  bool        `bson:"gameChat"  json:"gameChat"`
+	Chat      interface{} `bson:"chat" json:"chat"` // string or []GameChat
 }
 
 type GameChat struct {
@@ -20,11 +24,11 @@ type GameChat struct {
 	Type string `bson:"type" json:"type"`
 }
 
-type GameChats struct {
-	Timestamp time.Time  `bson:"timestamp" json:"timestamp"`
-	GameChat  bool       `bson:"gameChat" json:"gameChat"`
-	Chat      []GameChat `bson:"chat" json:"chat"`
-}
+// type GameChats struct {
+// 	Timestamp time.Time  `bson:"timestamp" json:"timestamp"`
+// 	GameChat  bool       `bson:"gameChat" json:"gameChat"`
+// 	Chat      []GameChat `bson:"chat" json:"chat"`
+// }
 
 // type CustomDeckState struct {
 // 	Liberal int `bson:"lib" json:"lib"`
@@ -49,12 +53,17 @@ type CustomGameSettings struct {
 }
 
 type GameState struct {
-	PreviousElectedGovernment []int `bson:"previousElectedGovernment" json:"previousElectedGovernment"`
-	UndrawnPolicyCount        int   `bson:"undrawnPolicyCount"        json:"undrawnPolicyCount"`
-	DiscardedPolicyCount      int   `bson:"discardedPolicyCount"      json:"discardedPolicyCount"`
-	PresidentIndex            int   `bson:"presidentIndex"            json:"presidentIndex"`
-	Started                   bool  `bson:"started" json:"isStarted"`
-	TracksFlipped             bool  `bson:"tracksFlipped" json:"isTracksFlipped"`
+	PreviousElectedGovernment           []int         `bson:"previousElectedGovernment" json:"previousElectedGovernment"`
+	UndrawnPolicyCount                  int           `bson:"undrawnPolicyCount"        json:"undrawnPolicyCount"`
+	DiscardedPolicyCount                int           `bson:"discardedPolicyCount"      json:"discardedPolicyCount"`
+	PresidentIndex                      int           `bson:"presidentIndex"            json:"presidentIndex"`
+	Started                             bool          `bson:"started" json:"isStarted"`
+	TracksFlipped                       bool          `bson:"tracksFlipped" json:"isTracksFlipped"`
+	VetoEnabled                         bool          `bson:"vetoEnabled" json:"isVetoEnabled"`
+	SpecialElectionFormerPresidentIndex int           `bson:"specialElectionFormerPresidentIndex" json:"specialElectionFormerPresidentIndex"`
+	Phase                               string        `bson:"phase" json:"phase"`
+	TimedMode                           bool          `bson:"timedMode" json:"timedModeEnabled"`
+	ClickActionInfo                     []interface{} `bson:"clickActionInfo" json:"clickActionInfo"` // Username, []int
 }
 
 /*cardStatus: {cardDisplayed: false, isFlipped: false, cardFront: "ballot", cardBack: {cardName: "nein"}}
@@ -85,17 +94,19 @@ type PlayerState struct {
 	LeftGame                 bool             `bson:"leftGame"  json:"leftGame"`
 	CustomCardback           string           `bson:"customCardback" json:"customCardback"`
 	CustomCardbackID         string           `bson:"customCardbackID" json:"customCardbackUid"`
-	IsLoader                 bool             `bson:"isLoader" json:"isLoader"`
-	IsRemakeVoting           bool             `bson:"isRemakeVoting" json:"isRemakeVoting"`
+	Loader                   bool             `bson:"loader" json:"isLoader"`
+	RemakeVoting             bool             `bson:"remakeVoting" json:"isRemakeVoting"`
 	PingTime                 int64            `bson:"pingTime" json:"pingTime"`
 	PreviousGovernmentStatus string           `bson:"previousGovernmentStatus" json:"previousGovernmentStatus"`
 	GovernmentStatus         string           `bson:"governmentStatus"         json:"governmentStatus"`
-	GameChats                []GameChats      `bson:"gameChats"                json:"gameChats"`
-	WasInvestigated          bool             `bson:"wasInvestigated"          json:"wasInvestigated"`
+	GameChats                []PlayerChat     `bson:"gameChats"                json:"gameChats"`
+	Investigated             bool             `bson:"investigated"          json:"wasInvestigated"`
 	Role                     Role             `bson:"role"                     json:"role"`
 	PlayerStates             []PlayerState    `bson:"playerStates" json:"playersState"`
 	NotificationStatus       string           `bson:"notificationStatus" json:"notificationStatus"`
 	NameStatus               string           `bson:"nameStatus" json:"nameStatus"`
+	Index                    int              `bson:"index" json:"index"`
+	Dead                     bool             `bson:"dead" json:"isDead"`
 	// Socket                   socketio.Conn    `bson:"-" json:"-"`
 }
 
@@ -113,9 +124,16 @@ type TrackState struct {
 }
 
 type PlayerCardStatus struct {
-	Cardback      string `bson:"cardback" json:"cardBack"`
-	CardName      string `bson:"cardName" json:"cardName"`
 	CardDisplayed bool   `bson:"cardDisplayed" json:"cardDisplayed"`
+	IsFlipped     bool   `bson:"isFlipped"     json:"isFlipped"`
+	CardFront     string `bson:"cardFront"     json:"cardFront"`
+	CardBack      struct {
+		CardName string `bson:"cardName" json:"cardName"`
+		Icon     int    `bson:"icon" json:"icon"`
+		Team     string `bson:"team" json:"team"`
+	} `bson:"cardBack" json:"cardBack"`
+	// Cardback string `bson:"cardback" json:"cardBack"`
+	CardName string `bson:"cardName" json:"cardName"`
 }
 
 type Role struct {
@@ -180,43 +198,45 @@ type GeneralGameSettings struct {
 	CustomCardback          []string  `bson:"customCardback" json:"customCardback"`
 	CustomCardbackUID       []string  `bson:"customCardbackUID" json:"customCardbackUid"`
 	// Players                 []Player               `bson:"players" json:"players"`
-	SeatedCount   int           `bson:"seatedCount" json:"seatedCount"`
-	TimeAbandoned *time.Time    `bson:"timeAbandoned" json:"timeAbandoned"`
-	Mutex         *sync.RWMutex `bson:"mutex" json:"mutex"`
+	SeatedCount   int        `bson:"seatedCount" json:"seatedCount"`
+	TimeAbandoned *time.Time `bson:"timeAbandoned" json:"timeAbandoned"`
+	// Mutex         *sync.RWMutex `bson:"mutex" json:"mutex"`
 	// Map             map[string]interface{} `bson:"map" json:"map"`
-	TimeStarted     time.Time `bson:"timeStarted" json:"timeStarted"`
-	GameCreatorName string    `bson:"gameCreatorName" json:"gameCreatorName,omitempty"`
+	TimeStarted       time.Time `bson:"timeStarted" json:"timeStarted"`
+	GameCreatorName   string    `bson:"gameCreatorName" json:"gameCreatorName,omitempty"`
+	GameStatus        string    `bson:"gameStatus" json:"gameStatus"`
+	LivingPlayerCount int       `bson:"livingPlayerCount" json:"livingPlayerCount"`
 }
 
 type GamePublic struct {
-	ID                  string              `bson:"id"                      json:"uid"`
-	Name                string              `bson:"name"                    json:"name"`
-	Flag                string              `bson:"flag"                    json:"flag"`
-	Date                time.Time           `bson:"date"                    json:"date"`
-	PlayerChats         string              `bson:"playerChats"             json:"playerChats"`
-	PlayerCount         int                 `bson:"playerCount"             json:"playerCount"`
-	WinningPlayerIDs    []string            `bson:"winningPlayers"          json:"winningPlayers"`
-	LosingPlayerIDs     []string            `bson:"losingPlayers"           json:"losingPlayers"`
-	WinningTeam         string              `bson:"winningTeam"             json:"winningTeam"`
-	Season              int                 `bson:"season"                  json:"season"`
-	Rainbow             bool                `bson:"rainbow"                 json:"rainbowgame"`
-	EloMinimum          int                 `bson:"eloMinimum"              json:"eloMinimum"`
-	EloMaximum          int                 `bson:"eloMaximum"              json:"eloMaximum"`
-	Rebalanced          string              `bson:"rebalanced"              json:"rebalanced"`
-	Rebalance6p         bool                `bson:"rebalance6p"             json:"rebalance6p"`
-	Rebalance7p         bool                `bson:"rebalance7p"             json:"rebalance7p"`
-	Rebalance9p         bool                `bson:"rebalance9p"             json:"rebalance9p"`
-	Rebalance9p2f       bool                `bson:"rebalance9p2f"           json:"rebalance9p2f"`
-	TournyFirstRound    bool                `bson:"tournyFirstRound"        json:"tournyFirstRound"`
-	TournySecondRound   bool                `bson:"tournySecondRound"       json:"tournySecondRound"`
-	Casual              bool                `bson:"casual"                  json:"casualGame"`
-	Practice            bool                `bson:"practice"                json:"practiceGame"`
-	Custom              bool                `bson:"custom"                  json:"custom"`
-	Unlisted            bool                `bson:"unlisted"                json:"unlistedGame"`
-	VerifiedOnly        bool                `bson:"verifiedOnly"            json:"isVerifiedOnly"`
-	Chats               []PlayerChat        `bson:"chats"                   json:"chats"`
-	Guesses             map[string]string   `bson:"guesses"                 json:"guesses"`
-	Timer               int                 `bson:"timer"                   json:"timedMode"`
+	ID                string            `bson:"id"                      json:"uid"`
+	Name              string            `bson:"name"                    json:"name"`
+	Flag              string            `bson:"flag"                    json:"flag"`
+	Date              time.Time         `bson:"date"                    json:"date"`
+	PlayerChats       string            `bson:"playerChats"             json:"playerChats"`
+	PlayerCount       int               `bson:"playerCount"             json:"playerCount"`
+	WinningPlayerIDs  []string          `bson:"winningPlayers"          json:"winningPlayers"`
+	LosingPlayerIDs   []string          `bson:"losingPlayers"           json:"losingPlayers"`
+	WinningTeam       string            `bson:"winningTeam"             json:"winningTeam"`
+	Season            int               `bson:"season"                  json:"season"`
+	Rainbow           bool              `bson:"rainbow"                 json:"rainbowgame"`
+	EloMinimum        int               `bson:"eloMinimum"              json:"eloMinimum"`
+	EloMaximum        int               `bson:"eloMaximum"              json:"eloMaximum"`
+	Rebalanced        string            `bson:"rebalanced"              json:"rebalanced"`
+	Rebalance6p       bool              `bson:"rebalance6p"             json:"rebalance6p"`
+	Rebalance7p       bool              `bson:"rebalance7p"             json:"rebalance7p"`
+	Rebalance9p       bool              `bson:"rebalance9p"             json:"rebalance9p"`
+	Rebalance9p2f     bool              `bson:"rebalance9p2f"           json:"rebalance9p2f"`
+	TournyFirstRound  bool              `bson:"tournyFirstRound"        json:"tournyFirstRound"`
+	TournySecondRound bool              `bson:"tournySecondRound"       json:"tournySecondRound"`
+	Casual            bool              `bson:"casual"                  json:"casualGame"`
+	Practice          bool              `bson:"practice"                json:"practiceGame"`
+	Custom            bool              `bson:"custom"                  json:"custom"`
+	Unlisted          bool              `bson:"unlisted"                json:"unlistedGame"`
+	VerifiedOnly      bool              `bson:"verifiedOnly"            json:"isVerifiedOnly"`
+	Chats             []PlayerChat      `bson:"chats"                   json:"chats"`
+	Guesses           map[string]string `bson:"guesses"                 json:"guesses"`
+	// Timer               int                 `bson:"timer"                   json:"timedMode"`
 	Blind               bool                `bson:"blind"                   json:"blindMode"`
 	Completed           bool                `bson:"completed"               json:"completed"`
 	GameState           GameState           `bson:"gameState"               json:"gameState"`
@@ -224,28 +244,35 @@ type GamePublic struct {
 	PublicPlayerStates  []PlayerState       `bson:"publicPlayerStates"      json:"publicPlayersState"`
 	GeneralGameSettings GeneralGameSettings `bson:"general"                 json:"general"`
 	// PlayerStates        []PlayerState       `bson:"playerStates"            json:"playersState"`
-	CardFlingerState []interface{}  `bson:"cardFlingerState"        json:"cardFlingerState"`
-	TrackState       TrackState     `bson:"trackState"              json:"trackState"`
-	PlayerCounts     []int          `bson:"playerCounts" json:"playerCounts"`
-	PlayerMap        map[string]int `bson:"playerMap" json:"playerMap"`
+	CardFlingerState        []interface{}  `bson:"cardFlingerState"        json:"cardFlingerState"`
+	TrackState              TrackState     `bson:"trackState"              json:"trackState"`
+	PlayerCounts            []int          `bson:"playerCounts" json:"playerCounts"`
+	PlayerMap               map[string]int `bson:"playerMap" json:"playerMap"`
+	ChatMutex               *sync.RWMutex  `bson:"-" json:"-"`
+	PublicPlayerStatesMutex *sync.RWMutex  `bson:"-" json:"-"`
 }
 
 type GamePrivate struct {
 	GamePublic              `bson:"gamePublic"`
-	Reports                 interface{}   `bson:"reports" json:"reports"`
-	UnseatedGameChats       []PlayerChat  `bson:"unseatedGameChats" json:"unseatedGameChats"`
-	CommandChats            []PlayerChat  `bson:"commandChats" json:"commandChats"`
-	ReplayGameChats         []PlayerChat  `bson:"replayGameChats" json:"replayGameChats"`
-	Lock                    interface{}   `bson:"lock" json:"lock"`
-	VotesPeeked             bool          `bson:"votesPeeked" json:"votesPeeked"`
-	RemakeVotesPeeked       bool          `bson:"remakeVotesPeeked" json:"remakeVotesPeeked"`
-	InvIndex                int           `bson:"invIndex" json:"invIndex"`
-	HiddenInfoChat          []PlayerChat  `bson:"hiddenInfoChat" json:"hiddenInfoChat"`
-	HiddenInfoSubscriptions []interface{} `bson:"hiddenInfoSubscriptions" json:"hiddenInfoSubscriptions"`
-	HiddenInfoShouldNotify  bool          `bson:"hiddenInfoShouldNotify" json:"hiddenInfoShouldNotify"`
-	GameCreatorName         string        `bson:"gameCreatorName" json:"gameCreatorName"`
-	GameCreatorID           string        `bson:"gameCreatorID" json:"gameCreatorID"`
-	GameCreatorBlacklist    []string      `bson:"gameCreatorBlacklist" json:"gameCreatorBlacklist"`
-	PrivatePassword         string        `bson:"privatePassword" json:"privatePassword"`
-	SeatedPlayers           []PlayerState `bson:"seatedPlayers" json:"seatedPlayers"`
+	Reports                 interface{}                `bson:"reports" json:"reports"`
+	UnseatedGameChats       []PlayerChat               `bson:"unseatedGameChats" json:"unseatedGameChats"`
+	CommandChats            []PlayerChat               `bson:"commandChats" json:"commandChats"`
+	ReplayGameChats         []PlayerChat               `bson:"replayGameChats" json:"replayGameChats"`
+	Lock                    interface{}                `bson:"lock" json:"lock"`
+	VotesPeeked             bool                       `bson:"votesPeeked" json:"votesPeeked"`
+	RemakeVotesPeeked       bool                       `bson:"remakeVotesPeeked" json:"remakeVotesPeeked"`
+	InvIndex                int                        `bson:"invIndex" json:"invIndex"`
+	HiddenInfoChat          []PlayerChat               `bson:"hiddenInfoChat" json:"hiddenInfoChat"`
+	HiddenInfoSubscriptions []interface{}              `bson:"hiddenInfoSubscriptions" json:"hiddenInfoSubscriptions"`
+	HiddenInfoShouldNotify  bool                       `bson:"hiddenInfoShouldNotify" json:"hiddenInfoShouldNotify"`
+	GameCreatorName         string                     `bson:"gameCreatorName" json:"gameCreatorName"`
+	GameCreatorID           string                     `bson:"gameCreatorID" json:"gameCreatorID"`
+	GameCreatorBlacklist    []string                   `bson:"gameCreatorBlacklist" json:"gameCreatorBlacklist"`
+	PrivatePassword         string                     `bson:"privatePassword" json:"privatePassword"`
+	SeatedPlayers           []PlayerState              `bson:"seatedPlayers" json:"seatedPlayers"`
+	PlayerStates            []PlayerState              `bson:"playerStates"            json:"playersState"`
+	SocketMap               map[string][]socketio.Conn `bson:"-" json:"-"`
+	SocketMapMutex          *sync.RWMutex              `bson:"-" json:"-"`
+	Policies                []Policy                   `bson:"policies" json:"policies"`
+	Timer                   *time.Timer                `bson:"-" json:"-"`
 }

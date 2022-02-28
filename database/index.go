@@ -44,7 +44,7 @@ func GetUserByID(userID string) *types.UserPrivate {
 			EloOverall: 1600,
 			EloSeason:  1600,
 			Status:     nil,
-			Profile: types.Profile{
+			Profile: &types.Profile{
 				Created:       time.Now(),
 				LastConnected: time.Now(),
 				Badges:        []types.Badge{},

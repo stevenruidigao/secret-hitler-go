@@ -107,6 +107,8 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		// fmt.Println("Sent emote list:", err)
 		// fmt.Println("more details", string(jsonData), EmotesList)
 		EmotesListMutex.RUnlock()
+
+		socket.Emit("generalChats", GeneralChats)
 		// SendUserList(socket)
 		user := GetUser(socket)
 		// fmt.Println("User", user)
@@ -297,7 +299,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 				playerNumber := game.GamePublic.PlayerMap[user.ID]
 
 				if playerNumber > 0 {
-					game.GamePublic.PlayerCount--
+					// game.GamePublic.PlayerCount--
 					game.GamePublic.PublicPlayerStates[playerNumber-1].Connected = false
 					IO.BroadcastToRoom("/", "game-"+game.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
 				}
