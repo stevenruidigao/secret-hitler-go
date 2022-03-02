@@ -73,6 +73,111 @@ func GetUser(socket socketio.Conn) *types.UserPrivate {
 	return user
 }
 
+func Connect(socket socketio.Conn) {
+	socket.SetContext("")
+	fmt.Println("Connecting", socket.ID())
+
+	socket.Emit("version", struct {
+		Current interface{} `json:"current"`
+	}{Current: struct {
+		Number string `json:"number"`
+	}{Number: constants.CURRENT_VERSION_NUMBER}})
+
+	// fmt.Println("Sent version:", socket.ID())
+	EmotesListMutex.RLock()
+	socket.Emit("emoteList", EmotesList)
+	// jsonData, err := json.Marshal(EmotesList)
+	// fmt.Println("Sent emote list:", err)
+	// fmt.Println("more details", string(jsonData), EmotesList)
+	EmotesListMutex.RUnlock()
+
+	socket.Emit("generalChats", GeneralChats)
+	// SendUserList(socket)
+	user := GetUser(socket)
+	// fmt.Println("User", user)
+
+	if user != nil {
+		data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
+		playerCount, _ := strconv.Atoi(data)
+		data = strconv.Itoa(playerCount + 1)
+		// fmt.Println("*", data, playerCount)
+		database.RedisDB.Set(ctx, "playerCount", data, 0)
+		user.Connections++
+		UserMapMutex.Lock()
+		UserMap[user.UserPublic.ID] = user
+		// fmt.Println("UserMap", UserMap)
+		UserMapMutex.Unlock()
+		// fmt.Println("GameSettings", user.GameSettings)
+		socket.Emit("gameSettings", user.GameSettings, len(user.GameSettings.Blacklist))
+		UpdateUserStatus(&user.UserPublic, nil, "")
+	}
+
+	// fmt.Println("Updated player count")
+
+	if user != nil && user.StaffRole != "" && user.StaffRole != "altmod" && user.StaffRole != "veteran" {
+		IO.JoinRoom("/", "aem", socket)
+
+	} else {
+		IO.JoinRoom("/", "users", socket)
+	}
+
+	IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))
+	IO.BroadcastToRoom("/", "users", "userList", GetUserList(false))
+	SendGameList(socket)
+
+	// crash here
+	// if user != nil {
+	// 	socket.Emit("gameSettings", user.GameSettings)
+	// }
+
+	// fmt.Println("Connected:", socket.ID())
+}
+
+func Disconnect(socket socketio.Conn, reason string) {
+	user := GetUser(socket)
+
+	if user != nil {
+		// database.RedisDB.Del(ctx, utils.GetCookie(socket.RemoteHeader().Get("cookie"), "session"))
+		// fmt.Println("disconnected", reason)
+		data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
+		playerCount, _ := strconv.Atoi(data)
+		data = strconv.Itoa(playerCount - 1)
+		// fmt.Println("**", data, playerCount)
+		database.RedisDB.Set(ctx, "playerCount", data, 0)
+
+		if user.Status != nil && user.Status.Type == "playing" {
+			GameMapMutex.RLock()
+			game := GameMap[user.Status.GameID]
+			GameMapMutex.RUnlock()
+
+			playerNumber := game.GamePublic.PlayerMap[user.ID]
+
+			if playerNumber > 0 {
+				// game.GamePublic.PlayerCount--
+				game.GamePublic.PublicPlayerStates[playerNumber-1].Connected = false
+				IO.BroadcastToRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
+			}
+			// UpdateUserStatus(user.UserPublic, nil, "")
+		}
+
+		user.Connections--
+
+		UserMapMutex.Lock()
+
+		if user.Connections == 0 {
+			delete(UserMap, user.UserPublic.ID)
+
+		} else {
+			UserMap[user.UserPublic.ID] = user
+		}
+
+		UserMapMutex.Unlock()
+
+		IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))
+		IO.BroadcastToRoom("/", "users", "userList", GetUserList(false))
+	}
+}
+
 func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.HandlerFunc {
 	IO = io
 
@@ -91,63 +196,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 	}
 
 	IO.OnConnect("/", func(socket socketio.Conn) error {
-		socket.SetContext("")
-		// fmt.Println("Connecting", socket.ID())
-
-		socket.Emit("version", struct {
-			Current interface{} `json:"current"`
-		}{Current: struct {
-			Number string `json:"number"`
-		}{Number: constants.CURRENT_VERSION_NUMBER}})
-
-		// fmt.Println("Sent version:", socket.ID())
-		EmotesListMutex.RLock()
-		socket.Emit("emoteList", EmotesList)
-		// jsonData, err := json.Marshal(EmotesList)
-		// fmt.Println("Sent emote list:", err)
-		// fmt.Println("more details", string(jsonData), EmotesList)
-		EmotesListMutex.RUnlock()
-
-		socket.Emit("generalChats", GeneralChats)
-		// SendUserList(socket)
-		user := GetUser(socket)
-		// fmt.Println("User", user)
-
-		if user != nil {
-			data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
-			playerCount, _ := strconv.Atoi(data)
-			data = strconv.Itoa(playerCount + 1)
-			// fmt.Println("*", data, playerCount)
-			database.RedisDB.Set(ctx, "playerCount", data, 0)
-			user.Connections++
-			UserMapMutex.Lock()
-			UserMap[user.UserPublic.ID] = user
-			// fmt.Println("UserMap", UserMap)
-			UserMapMutex.Unlock()
-			// fmt.Println("GameSettings", user.GameSettings)
-			socket.Emit("gameSettings", user.GameSettings, len(user.GameSettings.Blacklist))
-			UpdateUserStatus(&user.UserPublic, nil, "")
-		}
-
-		// fmt.Println("Updated player count")
-
-		if user != nil && user.StaffRole != "" && user.StaffRole != "altmod" && user.StaffRole != "veteran" {
-			IO.JoinRoom("/", "aem", socket)
-
-		} else {
-			IO.JoinRoom("/", "users", socket)
-		}
-
-		IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))
-		IO.BroadcastToRoom("/", "users", "userList", GetUserList(false))
-		SendGameList(socket)
-
-		// crash here
-		// if user != nil {
-		// 	socket.Emit("gameSettings", user.GameSettings)
-		// }
-
-		// fmt.Println("Connected:", socket.ID())
+		go Connect(socket)
 
 		return nil
 	})
@@ -178,31 +227,16 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 	IO.OnEvent("/", "addNewGame", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("AAaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\n\n\n\n\n\n\n")
 		fmt.Println("addNewGame", data)
-		user := GetUser(socket)
-		// fmt.Println("addNewGame", data, user)
 
-		if user != nil {
-			AddNewGame(socket, user, data)
-		}
+		go AddNewGame(socket, data)
 
 		// socket.Emit("hi", "hi")
 	})
 
 	IO.OnEvent("/", "addNewGameChat", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("addNewGameChat", data)
-		user := GetUser(socket)
 
-		if user != nil {
-			id, ok := data["uid"].(string)
-
-			if ok {
-				GameMapMutex.RLock()
-				game := GameMap[id]
-				GameMapMutex.RUnlock()
-
-				AddNewGameChat(socket, &user.UserPublic, data, game)
-			}
-		}
+		go AddNewGameChat(socket, data)
 	})
 
 	// IO.OnEvent("/", "addNewGeneralChat", func(socket socketio.Conn, data interface{}) {
@@ -211,68 +245,109 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 
 	IO.OnEvent("/", "addNewGeneralChat", func(socket socketio.Conn, data map[string]interface{}) {
 		// fmt.Println("addNewGeneralChat", data)
-		user := GetUser(socket)
-
-		if user != nil {
-			AddNewGeneralChat(socket, &user.UserPublic, data)
-		}
+		go AddNewGeneralChat(socket, data)
 	})
 
 	IO.OnEvent("/", "getGameInfo", func(socket socketio.Conn, id string) {
-		user := GetUser(socket)
-
-		fmt.Println("Game Update:", id)
-
-		if user != nil {
-			SendGameInfo(socket, &user.UserPublic, id)
-
-		} else {
-			SendGameInfo(socket, nil, id)
-		}
-
+		go SendGameInfo(socket, id)
 		fmt.Println("Updated Game")
 	})
 
 	IO.OnEvent("/", "updateSeatedUser", func(socket socketio.Conn, data map[string]interface{}) {
-		user := GetUser(socket)
+		go UpdateSeatedUser(socket, data)
+	})
 
-		if user != nil {
-			UpdateSeatedUser(socket, &user.UserPublic, data)
-		}
+	IO.OnEvent("/", "presidentSelectedChancellor", func(socket socketio.Conn, data map[string]interface{}) {
+		go func() {
+			user := GetUser(socket)
+
+			if user != nil {
+				id, ok := data["uid"].(string)
+
+				if !ok {
+					return
+				}
+
+				chancellorIndex, ok := data["chancellorIndex"].(float64)
+
+				if !ok {
+					return
+				}
+
+				GameMapMutex.RLock()
+				game := GameMap[id]
+				GameMapMutex.RUnlock()
+				SelectChancellor(&user.UserPublic, game, int(chancellorIndex), false)
+			}
+		}()
+	})
+
+	IO.OnEvent("/", "selectedVoting", func(socket socketio.Conn, data map[string]interface{}) {
+		go func() {
+			user := GetUser(socket)
+
+			if user != nil {
+				id, ok := data["uid"].(string)
+
+				if !ok {
+					return
+				}
+
+				vote, ok := data["vote"].(bool)
+
+				if !ok {
+					return
+				}
+
+				GameMapMutex.RLock()
+				game := GameMap[id]
+				GameMapMutex.RUnlock()
+
+				for i := range game.SeatedPlayers {
+					if game.SeatedPlayers[i].ID == user.UserPublic.ID {
+						SelectVote(&game.SeatedPlayers[i], game, vote, false)
+					}
+				}
+			}
+		}()
 	})
 
 	IO.OnEvent("/", "hasSeenNewPlayerModal", func(socket socketio.Conn, message string) {
-		fmt.Println("hasSeenNewPlayerModal:", message)
-		user := GetUser(socket)
-		user.DismissedSignupModal = true
+		go func() {
+			fmt.Println("hasSeenNewPlayerModal:", message)
+			user := GetUser(socket)
+			user.DismissedSignupModal = true
 
-		database.MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
-			"user.UserPublic.ID": user.UserPublic.ID,
-		}, bson.M{
-			"$set": &user,
-		})
+			database.MongoDB.Collection("Users").UpdateOne(ctx, bson.M{
+				"user.UserPublic.ID": user.UserPublic.ID,
+			}, bson.M{
+				"$set": &user,
+			})
+		}()
 	})
 
 	IO.OnEvent("/", "updateGameSettings", func(socket socketio.Conn, data map[string]interface{}) {
-		user := GetUser(socket)
+		go func() {
+			user := GetUser(socket)
 
-		// fmt.Println("Update Game Settings:", data["rightSidebarInGame"], user.GameSettings)
+			// fmt.Println("Update Game Settings:", data["rightSidebarInGame"], user.GameSettings)
 
-		if user != nil {
-			for key, value := range data {
-				switch key {
-				case "enableRightSidebarInGame":
-					user.GameSettings.RightSidebarInGame = value.(bool)
+			if user != nil {
+				for key, value := range data {
+					switch key {
+					case "enableRightSidebarInGame":
+						user.GameSettings.RightSidebarInGame = value.(bool)
 
-				case "enableTimestamps":
-					user.GameSettings.Timestamps = value.(bool)
+					case "enableTimestamps":
+						user.GameSettings.Timestamps = value.(bool)
+					}
 				}
+
+				database.UpdateUserByID(user.UserPublic.ID, user)
 			}
 
-			database.UpdateUserByID(user.UserPublic.ID, user)
-		}
-
-		socket.Emit("gameSettings", user.GameSettings)
+			socket.Emit("gameSettings", user.GameSettings)
+		}()
 	})
 
 	IO.OnError("/", func(socket socketio.Conn, err error) {
@@ -280,48 +355,7 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 	})
 
 	IO.OnDisconnect("/", func(socket socketio.Conn, reason string) {
-		user := GetUser(socket)
-
-		if user != nil {
-			// database.RedisDB.Del(ctx, utils.GetCookie(socket.RemoteHeader().Get("cookie"), "session"))
-			// fmt.Println("disconnected", reason)
-			data, _ := database.RedisDB.Get(ctx, "playerCount").Result()
-			playerCount, _ := strconv.Atoi(data)
-			data = strconv.Itoa(playerCount - 1)
-			// fmt.Println("**", data, playerCount)
-			database.RedisDB.Set(ctx, "playerCount", data, 0)
-
-			if user.Status != nil && user.Status.Type == "playing" {
-				GameMapMutex.RLock()
-				game := GameMap[user.Status.GameID]
-				GameMapMutex.RUnlock()
-
-				playerNumber := game.GamePublic.PlayerMap[user.ID]
-
-				if playerNumber > 0 {
-					// game.GamePublic.PlayerCount--
-					game.GamePublic.PublicPlayerStates[playerNumber-1].Connected = false
-					IO.BroadcastToRoom("/", "game-"+game.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
-				}
-				// UpdateUserStatus(user.UserPublic, nil, "")
-			}
-
-			user.Connections--
-
-			UserMapMutex.Lock()
-
-			if user.Connections == 0 {
-				delete(UserMap, user.UserPublic.ID)
-
-			} else {
-				UserMap[user.UserPublic.ID] = user
-			}
-
-			UserMapMutex.Unlock()
-
-			IO.BroadcastToRoom("/", "aem", "userList", GetUserList(true))
-			IO.BroadcastToRoom("/", "users", "userList", GetUserList(false))
-		}
+		go Disconnect(socket, reason)
 	})
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

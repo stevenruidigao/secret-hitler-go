@@ -84,9 +84,14 @@ func StartElection(game *types.GamePrivate, specialElectionPresidentIndex int) {
 		game.GamePublic.GameState.TimedMode = true
 		game.Timer = time.AfterFunc(time.Duration(game.GamePublic.GeneralGameSettings.Timer)*time.Second, func() {
 			if game.GamePublic.GameState.TimedMode {
-				chancellorIndex := game.GamePublic.GameState.ClickActionInfo[utils.RandInt(0, uint32(len(game.GamePublic.GameState.ClickActionInfo)))]
+				clickActionInfo, ok := game.GamePublic.GameState.ClickActionInfo[1].([]int)
 
-				fmt.Println("Chosen:", chancellorIndex)
+				if !ok {
+					return
+				}
+
+				chancellorIndex := clickActionInfo[utils.RandInt(0, uint32(len(clickActionInfo)))]
+				SelectChancellor(&game.GamePublic.PublicPlayerStates[game.GamePublic.GameState.PresidentIndex].UserPublic, game, chancellorIndex, false)
 			}
 		})
 	}

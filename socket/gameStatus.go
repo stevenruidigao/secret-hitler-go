@@ -46,7 +46,7 @@ func Countdown(game *types.GamePrivate, timer int) {
 		game.GamePublic.GeneralGameSettings.Status += "s"
 	}
 
-	IO.BroadcastToRoom("/", "game-"+game.ID, "gameUpdate", game.GamePublic)
+	IO.BroadcastToRoom("/", "game-"+game.GeneralGameSettings.ID, "gameUpdate", game.GamePublic)
 
 	time.AfterFunc(1*time.Second, func() {
 		Countdown(game, timer-1)

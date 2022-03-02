@@ -105,7 +105,7 @@ func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override s
 				statusType = "none"
 			}
 
-			if game != nil && !game.Unlisted {
+			if game != nil && !game.GeneralGameSettings.Unlisted {
 				statusType = "playing"
 
 				if game.GeneralGameSettings.Private {
@@ -118,7 +118,7 @@ func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override s
 
 			gameID := ""
 
-			if game != nil && !game.Unlisted {
+			if game != nil && !game.GeneralGameSettings.Unlisted {
 				gameID = game.GeneralGameSettings.ID
 			}
 
@@ -140,13 +140,15 @@ func UpdateUserStatus(user *types.UserPublic, game *types.GamePublic, override s
 	UserMapMutex.RUnlock()
 }
 
-func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
+func SendGameInfo(socket socketio.Conn, id string) {
+	user := GetUser(socket)
+
 	GameMapMutex.RLock()
 	game := GameMap[id]
 	GameMapMutex.RUnlock()
 
 	if user != nil {
-		playerNumber := game.GamePublic.PlayerMap[user.ID]
+		playerNumber := game.GamePublic.PlayerMap[user.UserPublic.ID]
 
 		fmt.Println("Player number:", playerNumber)
 
@@ -159,16 +161,16 @@ func SendGameInfo(socket socketio.Conn, user *types.UserPublic, id string) {
 			}
 
 			socket.Emit("updateSeatForUser", true)
-			UpdateUserStatus(user, &game.GamePublic, "playing")
+			UpdateUserStatus(&user.UserPublic, &game.GamePublic, "playing")
 			IO.JoinRoom("/", "game-"+id, socket)
-			IO.JoinRoom("/", "game-"+game.GamePublic.ID+"-"+user.ID, socket)
+			IO.JoinRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID+"-"+user.UserPublic.ID, socket)
 			SendInProgressGameUpdate(game)
 			socket.Emit("joinGameRedirect", id)
 			return
 
 		} else {
-			UpdateUserStatus(user, &game.GamePublic, "observing")
-			IO.JoinRoom("/", "game-"+game.GamePublic.ID+"-observer", socket)
+			UpdateUserStatus(&user.UserPublic, &game.GamePublic, "observing")
+			IO.JoinRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID+"-observer", socket)
 		}
 	}
 

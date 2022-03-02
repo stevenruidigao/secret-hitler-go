@@ -25,9 +25,10 @@ func SendInProgressGameUpdate(game *types.GamePrivate) {
 		// }
 		// game.SeatedPlayers[i].Socket.Emit("gameUpdate", gamePrivate)
 		gamePrivate.GamePublic.Chats = append(game.SeatedPlayers[i].GameChats, game.GamePublic.Chats...)
+		gamePrivate.GamePublic.CardFlingerState = game.SeatedPlayers[i].CardFlingerState
 		// fmt.Println("Merged Chats", gamePrivate.GamePublic.Chats)
-		IO.BroadcastToRoom("/", "game-"+gamePrivate.GamePublic.ID+"-"+game.SeatedPlayers[i].ID, "gameUpdate", gamePrivate)
-		// IO.BroadcastToRoom("/", "game-"+gamePrivate.GamePublic.ID+"-"+game.SeatedPlayers[i].ID, "gameUpdate2", gamePrivate)
+		IO.BroadcastToRoom("/", "game-"+gamePrivate.GamePublic.GeneralGameSettings.ID+"-"+game.SeatedPlayers[i].ID, "gameUpdate", gamePrivate)
+		// IO.BroadcastToRoom("/", "game-"+gamePrivate.GamePublic.GeneralGameSettings.ID+"-"+game.SeatedPlayers[i].ID, "gameUpdate2", gamePrivate)
 	}
 
 	gamePublic := types.GamePrivate{
@@ -35,7 +36,7 @@ func SendInProgressGameUpdate(game *types.GamePrivate) {
 	}
 
 	gamePublic.GamePublic.Chats = append(game.UnseatedGameChats, game.GamePublic.Chats...)
-	IO.BroadcastToRoom("/", "game-"+gamePublic.GamePublic.ID+"-observer", "gameUpdate", gamePublic)
+	IO.BroadcastToRoom("/", "game-"+gamePublic.GamePublic.GeneralGameSettings.ID+"-observer", "gameUpdate", gamePublic)
 }
 
 func ShufflePolicies(game *types.GamePrivate) {

@@ -50,16 +50,16 @@ func BeginGame(game *types.GamePrivate) {
 
 	fmt.Println("Custom Game Settings", customGameSettings, game.GamePublic.CustomGameSettings)
 
-	roles := make([]types.Role, game.GamePublic.PlayerCount)
+	roles := make([]types.CardBack, game.GamePublic.PlayerCount)
 
-	roles[0] = types.Role{
+	roles[0] = types.CardBack{
 		CardName: "hitler",
 		Icon:     1,
 		Team:     "fascist",
 	}
 
 	for i := 0; i < game.GamePublic.CustomGameSettings.LiberalCount; i++ {
-		roles[i+1] = types.Role{
+		roles[i+1] = types.CardBack{
 			CardName: "liberal",
 			Icon:     i % 6,
 			Team:     "liberal",
@@ -67,7 +67,7 @@ func BeginGame(game *types.GamePrivate) {
 	}
 
 	for i := 6; i < 6+game.GamePublic.CustomGameSettings.FascistCount; i++ {
-		roles[i+game.GamePublic.CustomGameSettings.LiberalCount-6] = types.Role{
+		roles[i+game.GamePublic.CustomGameSettings.LiberalCount-6] = types.CardBack{
 			CardName: "fascist",
 			Icon:     i,
 			Team:     "fascist",
@@ -103,7 +103,7 @@ func BeginGame(game *types.GamePrivate) {
 	for i := range game.SeatedPlayers {
 		game.SocketMapMutex.RLock()
 		for j := range game.SocketMap[game.SeatedPlayers[i].ID] {
-			IO.LeaveRoom("/", "game-"+game.GamePublic.ID+"-observer", game.SocketMap[game.SeatedPlayers[i].ID][j])
+			IO.LeaveRoom("/", "game-"+game.GamePublic.GeneralGameSettings.ID+"-observer", game.SocketMap[game.SeatedPlayers[i].ID][j])
 		}
 		game.SocketMapMutex.RUnlock()
 
@@ -112,7 +112,8 @@ func BeginGame(game *types.GamePrivate) {
 
 		for j := 0; j < game.GamePublic.PlayerCount; j++ {
 			game.SeatedPlayers[i].PlayerStates[j] = types.PlayerState{
-				CardStatus: types.PlayerCardStatus{
+				CardStatus: types.CardStatus{
+					CardBack:      "",
 					CardDisplayed: true,
 					CardFront:     "secretrole",
 				},
@@ -124,7 +125,7 @@ func BeginGame(game *types.GamePrivate) {
 		game.SeatedPlayers[i].PlayerStates[i].CardStatus.CardBack = game.SeatedPlayers[i].Role
 		game.SeatedPlayers[i].PlayerStates[i].CardStatus.CardName = game.SeatedPlayers[i].Role.CardName
 		// game.SeatedPlayers[i].PlayerStates[i].CardStatus.CardDisplayed = true
-		game.SeatedPlayers[i].PlayerStates[i].CardStatus.IsFlipped = true
+		game.SeatedPlayers[i].PlayerStates[i].CardStatus.Flipped = true
 		game.SeatedPlayers[i].PlayerStates[i].NameStatus = game.SeatedPlayers[i].Role.CardName
 		game.SeatedPlayers[i].PlayerStates[i].NotificationStatus = game.SeatedPlayers[i].Role.CardName
 		// fmt.Println("Player States:", i, game.SeatedPlayers[i].PlayerStates[i].CardStatus)
@@ -224,6 +225,28 @@ func BeginGame(game *types.GamePrivate) {
 	fascistElo.Seasonal /= float64(fascistPlayerCount + 1)
 	liberalElo.Overall /= float64(liberalPlayerCount)
 	liberalElo.Seasonal /= float64(liberalPlayerCount)
+
+	game.Summary = types.GameSummary{
+		GameID:             game.GamePublic.GeneralGameSettings.ID,
+		Time:               time.Now(),
+		GameSettings:       game.GamePublic.GeneralGameSettings,
+		CustomGameSettings: game.GamePublic.CustomGameSettings,
+		Logs:               []interface{}{},
+		LiberalElo:         liberalElo,
+		FascistElo:         fascistElo,
+	}
+
+	for i := range game.SeatedPlayers {
+		game.Summary.Logs = append(game.Summary.Logs, struct {
+			Username string `bson:"username" json:"username"`
+			Role     string `bson:"role" json:"role"`
+			Icon     int    `bson:"icon" json:"icon"`
+		}{
+			Username: game.SeatedPlayers[i].UserPublic.Username,
+			Role:     game.SeatedPlayers[i].Role.CardName,
+			Icon:     game.SeatedPlayers[i].Role.Icon,
+		})
+	}
 
 	game.UnseatedGameChats = append(game.UnseatedGameChats, types.PlayerChat{
 		Timestamp: time.Now(),
@@ -434,7 +457,7 @@ func BeginGame(game *types.GamePrivate) {
 
 	time.AfterFunc(5000*time.Millisecond, func() {
 		for i := range game.SeatedPlayers {
-			game.SeatedPlayers[i].PlayerStates[i].CardStatus.IsFlipped = false
+			game.SeatedPlayers[i].PlayerStates[i].CardStatus.Flipped = false
 
 			for j := range game.SeatedPlayers[i].PlayerStates {
 				game.SeatedPlayers[i].PlayerStates[j].NotificationStatus = ""
@@ -455,7 +478,9 @@ func BeginGame(game *types.GamePrivate) {
 	time.AfterFunc(5400*time.Millisecond, func() {
 		for i := range game.SeatedPlayers {
 			for j := range game.SeatedPlayers[i].PlayerStates {
-				game.SeatedPlayers[i].PlayerStates[j].CardStatus = types.PlayerCardStatus{}
+				game.SeatedPlayers[i].PlayerStates[j].CardStatus = types.CardStatus{
+					CardBack: "",
+				}
 			}
 		}
 
@@ -465,8 +490,9 @@ func BeginGame(game *types.GamePrivate) {
 
 func StartGame(game *types.GamePrivate) {
 	game.GamePublic.GameState.TracksFlipped = true
+	game.GamePublic.GeneralGameSettings.LivingPlayerCount = game.GamePublic.PlayerCount
 
-	for i := 0; i < game.PlayerCount; i++ {
+	for i := 0; i < game.PlayerCount-1; i++ {
 		j := utils.RandInt(uint32(i), uint32(game.PlayerCount))
 		player := game.GamePublic.PublicPlayerStates[i]
 		game.GamePublic.PublicPlayerStates[i] = game.GamePublic.PublicPlayerStates[j]
@@ -477,8 +503,14 @@ func StartGame(game *types.GamePrivate) {
 		game.GamePublic.PublicPlayerStates[j].Index = int(j)
 	}
 
+	for i := range game.GamePublic.PublicPlayerStates {
+		for j := range game.GamePublic.PublicPlayerStates[i].PlayerStates {
+			game.GamePublic.PublicPlayerStates[i].PlayerStates[j].CardStatus.CardBack = ""
+		}
+	}
+
 	game.SeatedPlayers = make([]types.PlayerState, len(game.GamePublic.PublicPlayerStates))
 	copy(game.SeatedPlayers, game.GamePublic.PublicPlayerStates)
-	// fmt.Println("Players", game.SeatedPlayers, game.GamePublic.PublicPlayerStates)
+	fmt.Println("Players", game.SeatedPlayers[0].CardStatus.CardBack == "", game.GamePublic.PublicPlayerStates[0].CardStatus.CardBack == "")
 	Countdown(game, 5)
 }
