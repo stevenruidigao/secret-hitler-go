@@ -105,7 +105,7 @@ type UserPrivate struct {
 	BackgroundColor     string               `bson:"backgroundColor"      json:"backgroundColor,omitempty"`
 	TextColor           string               `bson:"textColor"            json:"textColor,omitempty"`
 	TournamentMod       bool                 `bson:"tournamentMod"        json:"tournamentMod,omitempty"`
-	TimeLastGameCreated time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
+	// TimeLastGameCreated time.Time            `bson:"timeLastGameCreated"  json:"timeLastGameCreated"`
 	// Profile             Profile              `bson:"profile"              json:"profile"`
 	FinishedSignup bool `bson:"finishedSignup" json:"finishedSignup"`
 	Connections    int  `bson:"-"                    json:"connections,omitempty"`

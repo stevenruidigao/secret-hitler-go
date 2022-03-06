@@ -312,6 +312,67 @@ func SetupSocketRoutes(io *socketio.Server, store *sessions.CookieStore) http.Ha
 		}()
 	})
 
+	IO.OnEvent("/", "selectedPresidentPolicy", func(socket socketio.Conn, data map[string]interface{}) {
+		go func() {
+			user := GetUser(socket)
+
+			if user != nil {
+				id, ok := data["uid"].(string)
+
+				if !ok {
+					return
+				}
+
+				selection, ok := data["selection"].(float64)
+
+				if !ok {
+					return
+				}
+
+				GameMapMutex.RLock()
+				game := GameMap[id]
+				GameMapMutex.RUnlock()
+
+				SelectPresidentPolicy(&user.UserPublic, game, int(selection), false)
+			}
+		}()
+	})
+
+	IO.OnEvent("/", "selectedChancellorPolicy", func(socket socketio.Conn, data map[string]interface{}) {
+		go func() {
+			user := GetUser(socket)
+
+			if user != nil {
+				id, ok := data["uid"].(string)
+
+				if !ok {
+					return
+				}
+
+				fmt.Println("CSelection id", id, ok)
+
+				selection, ok := data["selection"].(float64)
+
+				if !ok {
+					return
+				}
+
+				GameMapMutex.RLock()
+				game := GameMap[id]
+				GameMapMutex.RUnlock()
+
+				fmt.Println("CSelection", selection, ok)
+
+				if selection == 1 {
+					SelectChancellorPolicy(&user.UserPublic, game, 0, false)
+
+				} else if selection == 3 {
+					SelectChancellorPolicy(&user.UserPublic, game, 1, false)
+				}
+			}
+		}()
+	})
+
 	IO.OnEvent("/", "hasSeenNewPlayerModal", func(socket socketio.Conn, message string) {
 		go func() {
 			fmt.Println("hasSeenNewPlayerModal:", message)

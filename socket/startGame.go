@@ -13,7 +13,7 @@ func BeginGame(game *types.GamePrivate) {
 	fmt.Println("Game is starting...")
 
 	game.GamePublic.GeneralGameSettings.TimeStarted = time.Now()
-	customGameSettings := game.GamePublic.CustomGameSettings
+	game.GamePublic.GeneralGameSettings.PlayerCount = game.GamePublic.PlayerCount
 
 	if !game.GamePublic.CustomGameSettings.Enabled {
 		game.GamePublic.CustomGameSettings.HitlerZone = 3
@@ -27,49 +27,76 @@ func BeginGame(game *types.GamePrivate) {
 			Fascist: 11,
 		}
 
+		var powers []string
+
 		if 5 <= game.GamePublic.PlayerCount && game.GamePublic.PlayerCount <= 6 {
-			game.CustomGameSettings.FascistCount = 1
-			game.CustomGameSettings.HitlerKnowsFascists = true
-			game.CustomGameSettings.Powers = []string{"null", "null", "deckpeek", "bullet", "bullet"}
+			game.GamePublic.CustomGameSettings.FascistCount = 1
+			game.GamePublic.CustomGameSettings.HitlerKnowsFascists = true
+			powers = []string{"", "", "deckpeek", "bullet", "bullet"}
+
+			if game.GamePublic.GeneralGameSettings.Rebalance6p && len(game.GamePublic.PublicPlayerStates) == 6 {
+				game.GamePublic.CustomGameSettings.TrackState.Fascist = 1
+			}
 
 		} else if 7 <= game.GamePublic.PlayerCount && game.GamePublic.PlayerCount <= 8 {
-			game.CustomGameSettings.FascistCount = 2
-			game.CustomGameSettings.HitlerKnowsFascists = false
-			game.CustomGameSettings.Powers = []string{"null", "investigate", "election", "bullet", "bullet"}
+			game.GamePublic.CustomGameSettings.FascistCount = 2
+			game.GamePublic.CustomGameSettings.HitlerKnowsFascists = false
+			powers = []string{"", "investigate", "election", "bullet", "bullet"}
+
+			if game.GamePublic.GeneralGameSettings.Rebalance7p && len(game.GamePublic.PublicPlayerStates) == 7 {
+				game.GamePublic.CustomGameSettings.DeckState.Fascist = 10
+			}
 
 		} else if 9 <= game.GamePublic.PlayerCount && game.GamePublic.PlayerCount <= 10 {
-			game.CustomGameSettings.FascistCount = 3
-			game.CustomGameSettings.HitlerKnowsFascists = false
-			game.CustomGameSettings.Powers = []string{"investigate", "investigate", "election", "bullet", "bullet"}
+			game.GamePublic.CustomGameSettings.FascistCount = 3
+			game.GamePublic.CustomGameSettings.HitlerKnowsFascists = false
+			powers = []string{"investigate", "investigate", "election", "bullet", "bullet"}
+
+			if game.GamePublic.GeneralGameSettings.Rebalance9p2f && len(game.GamePublic.PublicPlayerStates) == 9 {
+				game.GamePublic.CustomGameSettings.DeckState.Fascist = 10
+			}
 		}
 
-		game.GamePublic.CustomGameSettings.LiberalCount = game.GamePublic.PlayerCount - customGameSettings.FascistCount - 1
+		game.GamePublic.CustomGameSettings.Powers = make([]*string, len(powers))
+
+		for i := range powers {
+			if powers[i] != "" {
+				game.GamePublic.CustomGameSettings.Powers[i] = &powers[i]
+			}
+		}
+
+		game.GamePublic.CustomGameSettings.LiberalCount = game.GamePublic.PlayerCount - game.GamePublic.CustomGameSettings.FascistCount - 1
 	}
 
-	ShufflePolicies(game)
+	ShufflePolicies(game, true)
 
-	fmt.Println("Custom Game Settings", customGameSettings, game.GamePublic.CustomGameSettings)
+	fmt.Println("Custom Game Settings", game.GamePublic.CustomGameSettings)
 
 	roles := make([]types.CardBack, game.GamePublic.PlayerCount)
+	icon := 1
 
 	roles[0] = types.CardBack{
 		CardName: "hitler",
-		Icon:     1,
+		Icon:     &icon,
 		Team:     "fascist",
 	}
 
 	for i := 0; i < game.GamePublic.CustomGameSettings.LiberalCount; i++ {
+		icon := i % 6
+
 		roles[i+1] = types.CardBack{
 			CardName: "liberal",
-			Icon:     i % 6,
+			Icon:     &icon,
 			Team:     "liberal",
 		}
 	}
 
 	for i := 6; i < 6+game.GamePublic.CustomGameSettings.FascistCount; i++ {
+		icon := i
+
 		roles[i+game.GamePublic.CustomGameSettings.LiberalCount-6] = types.CardBack{
 			CardName: "fascist",
-			Icon:     i,
+			Icon:     &icon,
 			Team:     "fascist",
 		}
 	}
@@ -107,6 +134,7 @@ func BeginGame(game *types.GamePrivate) {
 		}
 		game.SocketMapMutex.RUnlock()
 
+		fmt.Println("Seat", i)
 		game.SeatedPlayers[i].Role = roles[i]
 		game.SeatedPlayers[i].PlayerStates = make([]types.PlayerState, game.GamePublic.PlayerCount)
 
@@ -164,7 +192,7 @@ func BeginGame(game *types.GamePrivate) {
 			})
 		}
 
-		game.HiddenInfoChat = append(game.HiddenInfoChat, types.PlayerChat{
+		modChat := types.PlayerChat{
 			Timestamp: time.Now(),
 			GameChat:  true,
 			Chat: []types.GameChat{
@@ -183,9 +211,13 @@ func BeginGame(game *types.GamePrivate) {
 					Text: " role.",
 				},
 			},
-		})
+		}
+
+		game.HiddenInfoChat = append(game.HiddenInfoChat, modChat)
+		SendInProgressModChatUpdate(game, modChat)
 
 		if game.SeatedPlayers[i].Role.CardName == "fascist" {
+			fmt.Println("Fascist in seat", i, fascistPlayerCount)
 			fascistPlayers[fascistPlayerCount] = game.SeatedPlayers[i]
 			fascistPlayerCount++
 
@@ -237,6 +269,12 @@ func BeginGame(game *types.GamePrivate) {
 	}
 
 	for i := range game.SeatedPlayers {
+		icon := 0
+
+		if game.SeatedPlayers[i].Role.Icon == nil {
+			game.SeatedPlayers[i].Role.Icon = &icon
+		}
+
 		game.Summary.Logs = append(game.Summary.Logs, struct {
 			Username string `bson:"username" json:"username"`
 			Role     string `bson:"role" json:"role"`
@@ -244,7 +282,7 @@ func BeginGame(game *types.GamePrivate) {
 		}{
 			Username: game.SeatedPlayers[i].UserPublic.Username,
 			Role:     game.SeatedPlayers[i].Role.CardName,
-			Icon:     game.SeatedPlayers[i].Role.Icon,
+			Icon:     *game.SeatedPlayers[i].Role.Icon,
 		})
 	}
 
@@ -275,17 +313,19 @@ func BeginGame(game *types.GamePrivate) {
 						newGameChat = append(newGameChat, types.GameChat{
 							Text: "fascist",
 							Type: "fascist",
-						}, types.GameChat{
-							Text: " in this game is ",
-						})
+						},
+							types.GameChat{
+								Text: " in this game is ",
+							})
 
 					} else {
 						newGameChat = append(newGameChat, types.GameChat{
 							Text: "fascists",
 							Type: "fascist",
-						}, types.GameChat{
-							Text: " in this game are ",
-						})
+						},
+							types.GameChat{
+								Text: " in this game are ",
+							})
 					}
 
 					for j := range fascistPlayers {
@@ -343,15 +383,13 @@ func BeginGame(game *types.GamePrivate) {
 					})
 				}
 
-				newGameChat = append(newGameChat, []types.GameChat{
-					types.GameChat{
-						Text: "fascist",
-						Type: "fascist",
-					},
+				newGameChat = append(newGameChat, types.GameChat{
+					Text: "fascist",
+					Type: "fascist",
+				},
 					types.GameChat{
 						Text: ".",
-					},
-				}...)
+					})
 
 				game.SeatedPlayers[fascistPlayers[i].Index].GameChats = append(game.SeatedPlayers[fascistPlayers[i].Index].GameChats, types.PlayerChat{
 					Timestamp: time.Now(),
@@ -363,10 +401,14 @@ func BeginGame(game *types.GamePrivate) {
 			for j := range fascistPlayers {
 				game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[fascistPlayers[j].Index].NameStatus = "fascist"
 				game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[fascistPlayers[j].Index].NotificationStatus = "fascist"
+				game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[fascistPlayers[j].Index].Role.CardName = "fascist"
+				game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[fascistPlayers[j].Index].Role.Team = "fascist"
 			}
 
 			game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[hitler.Index].NameStatus = "hitler"
 			game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[hitler.Index].NotificationStatus = "hitler"
+			game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[hitler.Index].Role.CardName = "hitler"
+			game.SeatedPlayers[fascistPlayers[i].Index].PlayerStates[hitler.Index].Role.Team = "fascist"
 		}
 
 		if !game.GamePublic.GeneralGameSettings.DisableGamechat {
@@ -383,17 +425,19 @@ func BeginGame(game *types.GamePrivate) {
 					newGameChat = append(newGameChat, types.GameChat{
 						Text: "fascist",
 						Type: "fascist",
-					}, types.GameChat{
-						Text: " in this game is ",
-					})
+					},
+						types.GameChat{
+							Text: " in this game is ",
+						})
 
 				} else {
 					newGameChat = append(newGameChat, types.GameChat{
 						Text: "fascists",
 						Type: "fascist",
-					}, types.GameChat{
-						Text: " in this game are ",
-					})
+					},
+						types.GameChat{
+							Text: " in this game are ",
+						})
 				}
 
 				for i := range fascistPlayers {
@@ -449,6 +493,8 @@ func BeginGame(game *types.GamePrivate) {
 			for i := range fascistPlayers {
 				game.SeatedPlayers[hitler.Index].PlayerStates[fascistPlayers[i].Index].NameStatus = "fascist"
 				game.SeatedPlayers[hitler.Index].PlayerStates[fascistPlayers[i].Index].NotificationStatus = "fascist"
+				game.SeatedPlayers[hitler.Index].PlayerStates[fascistPlayers[i].Index].Role.CardName = "fascist"
+				game.SeatedPlayers[hitler.Index].PlayerStates[fascistPlayers[i].Index].Role.Team = "fascist"
 			}
 		}
 
@@ -490,6 +536,7 @@ func BeginGame(game *types.GamePrivate) {
 
 func StartGame(game *types.GamePrivate) {
 	game.GamePublic.GameState.TracksFlipped = true
+	game.GamePublic.GeneralGameSettings.GameStatus = "isStarted"
 	game.GamePublic.GeneralGameSettings.LivingPlayerCount = game.GamePublic.PlayerCount
 
 	for i := 0; i < game.PlayerCount-1; i++ {
@@ -497,8 +544,8 @@ func StartGame(game *types.GamePrivate) {
 		player := game.GamePublic.PublicPlayerStates[i]
 		game.GamePublic.PublicPlayerStates[i] = game.GamePublic.PublicPlayerStates[j]
 		game.GamePublic.PublicPlayerStates[j] = player
-		game.GamePublic.PlayerMap[game.GamePublic.PublicPlayerStates[i].ID] = int(i)
-		game.GamePublic.PlayerMap[game.GamePublic.PublicPlayerStates[j].ID] = int(j)
+		game.GamePublic.PlayerMap[game.GamePublic.PublicPlayerStates[i].ID] = int(i) + 1
+		game.GamePublic.PlayerMap[game.GamePublic.PublicPlayerStates[j].ID] = int(j) + 1
 		game.GamePublic.PublicPlayerStates[i].Index = i
 		game.GamePublic.PublicPlayerStates[j].Index = int(j)
 	}

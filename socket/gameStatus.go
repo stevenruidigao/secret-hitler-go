@@ -12,7 +12,10 @@ func DisplayWaitingForPlayers(game *types.GamePrivate) string {
 	currentPlayerCount := len(game.GamePublic.PublicPlayerStates)
 
 	for _, playerCount := range game.GamePublic.PlayerCounts {
-		if playerCount > currentPlayerCount {
+		if currentPlayerCount == playerCount {
+			break
+
+		} else if playerCount > currentPlayerCount {
 			difference := playerCount - currentPlayerCount
 			status = "Waiting for " + strconv.Itoa(difference) + " more player"
 

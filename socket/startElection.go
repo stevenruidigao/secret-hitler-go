@@ -11,11 +11,11 @@ import (
 
 func StartElection(game *types.GamePrivate, specialElectionPresidentIndex int) {
 	if game.GamePublic.TrackState.FascistPolicyCount >= game.GamePublic.CustomGameSettings.VetoZone {
-		game.GamePublic.GameState.VetoEnabled = true
+		game.GamePublic.GameState.Veto = true
 	}
 
 	if game.GamePublic.GameState.UndrawnPolicyCount < 3 {
-		ShufflePolicies(game)
+		ShufflePolicies(game, false)
 	}
 
 	game.GamePublic.GameState.PresidentIndex++

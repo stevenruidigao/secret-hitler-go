@@ -59,6 +59,14 @@ func SelectChancellor(user *types.UserPublic, game *types.GamePrivate, chancello
 	}
 
 	game.ActionMutex.Lock()
+
+	if game.Lock.SelectChancellor {
+		fmt.Println("President already selected chancellor")
+		game.ActionMutex.Unlock()
+		return
+	}
+
+	game.Lock.SelectChancellor = true
 	fmt.Println("Taking action", game.GamePublic.GameState.PendingChancellorIndex, game.GamePublic.GameState.Phase)
 
 	if game.GamePublic.GameState.PendingChancellorIndex == -1 && game.GamePublic.GameState.Phase != "voting" {
@@ -120,8 +128,8 @@ func SelectChancellor(user *types.UserPublic, game *types.GamePrivate, chancello
 				})
 			}
 
-			game.SeatedPlayers[i].CardFlingerState = []types.CardFlingerState{
-				types.CardFlingerState{
+			game.SeatedPlayers[i].CardFlingerState = []types.CardFlinger{
+				types.CardFlinger{
 					Position:           "middle-left",
 					NotificationStatus: "",
 					Action:             "active",
@@ -131,7 +139,7 @@ func SelectChancellor(user *types.UserPublic, game *types.GamePrivate, chancello
 						CardBack:  "ja",
 					},
 				},
-				types.CardFlingerState{
+				types.CardFlinger{
 					Position:           "middle-right",
 					NotificationStatus: "",
 					Action:             "active",

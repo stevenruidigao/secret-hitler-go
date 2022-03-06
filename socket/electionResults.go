@@ -34,7 +34,7 @@ func FailedElection(game *types.GamePrivate) {
 		}
 
 		if game.GamePublic.GameState.UndrawnPolicyCount == 0 {
-			ShufflePolicies(game)
+			ShufflePolicies(game, false)
 		}
 
 		game.GamePublic.GameState.UndrawnPolicyCount--
@@ -78,6 +78,7 @@ func FailedElection(game *types.GamePrivate) {
 }
 
 func PassedElection(game *types.GamePrivate) {
+	game.GamePublic.GameState.ChancellorIndex = game.GameState.PendingChancellorIndex
 	fmt.Println("Passed election")
 
 	if game.GamePublic.GameState.PreviousElectedGovernment[0] != -1 {
@@ -106,24 +107,25 @@ func PassedElection(game *types.GamePrivate) {
 	}
 
 	if game.GamePublic.GameState.UndrawnPolicyCount < 3 {
-		ShufflePolicies(game)
+		ShufflePolicies(game, false)
 	}
 
-	policies := game.Policies[:3]
-	game.CurrentElectionPolicies = make([]string, len(policies))
+	// policies := game.Policies[:3]
+	game.CurrentElectionPolicies = make([]string, 3)
+	copy(game.CurrentElectionPolicies, game.Policies[:3])
 	game.Policies = game.Policies[3:]
 	validHand := true
-	situation := "has just received an invalid hand!\n"
+	comment := "has just received an invalid hand!\n"
 
-	for i := range policies {
-		game.CurrentElectionPolicies[i] = policies[i].Cardback
-	}
+	// for i := range policies {
+	// 	game.CurrentElectionPolicies[i] = policies[i]
+	// }
 
 	for i := range game.CurrentElectionPolicies {
-		situation += game.CurrentElectionPolicies[i]
+		comment += game.CurrentElectionPolicies[i]
 
 		if i != len(game.CurrentElectionPolicies)-1 {
-			situation += ", "
+			comment += ", "
 		}
 
 		if game.CurrentElectionPolicies[i] != "fascist" && game.CurrentElectionPolicies[i] != "liberal" {
@@ -141,19 +143,21 @@ func PassedElection(game *types.GamePrivate) {
 			gameType = "Practice"
 		}
 
-		MakeReport(map[string]interface{}{
-			"player":    "A Player",
-			"seat":      game.GamePublic.GameState.PresidentIndex + 1,
-			"role":      game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].Role.CardName,
-			"situation": situation,
-			"election":  game.GamePublic.GeneralGameSettings.ElectionCount,
-			"gameName":  game.GamePublic.GeneralGameSettings.Name,
-			"gameID":    game.GamePublic.GeneralGameSettings.ID,
-			"gameType":  gameType,
-		}, game, "report")
+		MakeReport(game, types.Report{
+			ReportedPlayerID:       game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].UserPublic.ID,
+			ReportedPlayerSeat:     game.GamePublic.GameState.PresidentIndex + 1,
+			ReportedPlayerRole:     game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].Role.CardName,
+			Comment:                comment,
+			GameElectionCount:      game.GamePublic.GeneralGameSettings.ElectionCount,
+			GameName:               game.GamePublic.GeneralGameSettings.Name,
+			GameID:                 game.GamePublic.GeneralGameSettings.ID,
+			GameType:               gameType,
+			ReportedPlayerUsername: game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].UserPublic.ID,
+			ReportType:             "report",
+		})
 	}
 
-	chat := []types.GameChat{
+	hiddenInfoChat := []types.GameChat{
 		types.GameChat{
 			Text: "President",
 		},
@@ -168,28 +172,31 @@ func PassedElection(game *types.GamePrivate) {
 
 	for i := range game.CurrentElectionPolicies {
 		if game.CurrentElectionPolicies[i] == "fascist" {
-			chat = append(chat, types.GameChat{
+			hiddenInfoChat = append(hiddenInfoChat, types.GameChat{
 				Text: "R",
 				Type: "fascist",
 			})
 
 		} else {
-			chat = append(chat, types.GameChat{
+			hiddenInfoChat = append(hiddenInfoChat, types.GameChat{
 				Text: "B",
 				Type: "liberal",
 			})
 		}
 	}
 
-	chat = append(chat, types.GameChat{
+	hiddenInfoChat = append(hiddenInfoChat, types.GameChat{
 		Text: ".",
 	})
 
-	game.HiddenInfoChat = append(game.HiddenInfoChat, types.PlayerChat{
+	modChat := types.PlayerChat{
 		Timestamp: time.Now(),
 		GameChat:  true,
-		Chat:      chat,
-	})
+		Chat:      hiddenInfoChat,
+	}
+
+	game.HiddenInfoChat = append(game.HiddenInfoChat, modChat)
+	SendInProgressModChatUpdate(game, modChat)
 
 	game.Summary.Logs = append(game.Summary.Logs, struct {
 		PresidentHand []string `bson:"presidentHand" json:"presidentHand"`
@@ -197,32 +204,32 @@ func PassedElection(game *types.GamePrivate) {
 		PresidentHand: game.CurrentElectionPolicies,
 	})
 
-	game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState = []types.CardFlingerState{
-		types.CardFlingerState{
+	game.CardFlingerState = []types.CardFlinger{
+		types.CardFlinger{
 			Position: "middle-far-left",
 			Action:   "active",
 			CardStatus: types.CardStatus{
-				Flipped:   false,
+				Flipped:   true,
 				CardFront: "policy",
 				CardBack:  game.CurrentElectionPolicies[0] + "p",
 			},
 			Discard: true,
 		},
-		types.CardFlingerState{
+		types.CardFlinger{
 			Position: "middle-center",
 			Action:   "active",
 			CardStatus: types.CardStatus{
-				Flipped:   false,
+				Flipped:   true,
 				CardFront: "policy",
 				CardBack:  game.CurrentElectionPolicies[1] + "p",
 			},
 			Discard: true,
 		},
-		types.CardFlingerState{
+		types.CardFlinger{
 			Position: "middle-far-right",
 			Action:   "active",
 			CardStatus: types.CardStatus{
-				Flipped:   false,
+				Flipped:   true,
 				CardFront: "policy",
 				CardBack:  game.CurrentElectionPolicies[2] + "p",
 			},
@@ -230,6 +237,7 @@ func PassedElection(game *types.GamePrivate) {
 		},
 	}
 
+	game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState = game.CardFlingerState
 	game.GamePublic.GameState.UndrawnPolicyCount--
 	SendInProgressGameUpdate(game)
 
@@ -241,5 +249,45 @@ func PassedElection(game *types.GamePrivate) {
 	time.AfterFunc(400*time.Millisecond, func() {
 		game.GamePublic.GameState.UndrawnPolicyCount--
 		SendInProgressGameUpdate(game)
+	})
+
+	time.AfterFunc(200*time.Millisecond, func() {
+		for i := range game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState {
+			game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState[i].CardStatus.Flipped = true
+			game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState[i].NotificationStatus = "notification"
+		}
+
+		game.GamePublic.GameState.Phase = "presidentSelectingPolicy"
+		game.GamePublic.GameState.PreviousElectedGovernment = []int{game.GamePublic.GameState.PresidentIndex, game.GamePublic.GameState.ChancellorIndex}
+
+		if game.GamePublic.GeneralGameSettings.Timer > 0 {
+			if game.Timer != nil {
+				game.Timer.Stop()
+				game.Timer = nil
+			}
+
+			game.GamePublic.GameState.TimedMode = true
+
+			game.Timer = time.AfterFunc(time.Duration(game.GamePublic.GeneralGameSettings.Timer)*time.Second, func() {
+				if game.GameState.TimedMode {
+					game.GameState.TimedMode = false
+					SelectPresidentPolicy(&game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].UserPublic, game, int(utils.RandInt(0, uint32(len(game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].CardFlingerState)))), true)
+
+					game.ReplayGameChats = append(game.ReplayGameChats, types.PlayerChat{
+						Timestamp: time.Now(),
+						GameChat:  true,
+						Chat: []types.GameChat{
+							types.GameChat{
+								Text: game.SeatedPlayers[game.GamePublic.GameState.PresidentIndex].UserPublic.Username + " {" + strconv.Itoa(game.GamePublic.GameState.PresidentIndex+1) + "}",
+								Type: "player",
+							},
+							types.GameChat{
+								Text: " was forced by the timer to select a random policy to discard.",
+							},
+						},
+					})
+				}
+			})
+		}
 	})
 }

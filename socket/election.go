@@ -26,6 +26,8 @@ func FlipBallotCards(game *types.GamePrivate) {
 		}
 	}
 
+	votes := make([]bool, len(game.GamePublic.PublicPlayerStates))
+
 	for i := range game.GamePublic.PublicPlayerStates {
 		if !game.GamePublic.PublicPlayerStates[i].Dead {
 			cardBack := types.CardBack{}
@@ -39,8 +41,16 @@ func FlipBallotCards(game *types.GamePrivate) {
 
 			game.GamePublic.PublicPlayerStates[i].CardStatus.CardBack = cardBack
 			game.GamePublic.PublicPlayerStates[i].CardStatus.Flipped = true
+			votes[i] = game.SeatedPlayers[i].VoteStatus.VotedYes
+			game.GamePublic.PublicPlayerStates[i].CardStatus.CardDisplayed = true
 		}
 	}
+
+	game.Summary.Logs = append(game.Summary.Logs, struct {
+		Votes []bool `bson:"votes" json:"votes"`
+	}{
+		Votes: votes,
+	})
 
 	SendInProgressGameUpdate(game)
 
@@ -101,10 +111,13 @@ func FlipBallotCards(game *types.GamePrivate) {
 
 				if game.GamePublic.CustomGameSettings.HitlerZone%10 == 1 && game.GamePublic.CustomGameSettings.HitlerZone != 11 {
 					numberText = strconv.Itoa(game.GamePublic.CustomGameSettings.HitlerZone) + "st"
+
 				} else if game.GamePublic.CustomGameSettings.HitlerZone%10 == 2 && game.GamePublic.CustomGameSettings.HitlerZone != 12 {
 					numberText = strconv.Itoa(game.GamePublic.CustomGameSettings.HitlerZone) + "nd"
+
 				} else if game.GamePublic.CustomGameSettings.HitlerZone%10 == 3 && game.GamePublic.CustomGameSettings.HitlerZone != 13 {
 					numberText = strconv.Itoa(game.GamePublic.CustomGameSettings.HitlerZone) + "rd"
+
 				} else {
 					numberText = strconv.Itoa(game.GamePublic.CustomGameSettings.HitlerZone) + "th"
 				}
@@ -150,7 +163,7 @@ func FlipBallotCards(game *types.GamePrivate) {
 					}
 
 					fmt.Println("Game Complete")
-					SendInProgressGameUpdate(game)
+					CompleteGame(game, "fascist")
 				})
 
 			} else {

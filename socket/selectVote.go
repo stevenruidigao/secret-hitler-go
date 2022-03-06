@@ -63,8 +63,8 @@ func SelectVote(playerState *types.PlayerState, game *types.GamePrivate, vote bo
 		}
 
 		if vote {
-			playerState.CardFlingerState = []types.CardFlingerState{
-				types.CardFlingerState{
+			playerState.CardFlingerState = []types.CardFlinger{
+				types.CardFlinger{
 					Position:           "middle-left",
 					NotificationStatus: notificationStatus,
 					Action:             "active",
@@ -74,7 +74,7 @@ func SelectVote(playerState *types.PlayerState, game *types.GamePrivate, vote bo
 						CardBack:  "ja",
 					},
 				},
-				types.CardFlingerState{
+				types.CardFlinger{
 					Position:           "middle-right",
 					NotificationStatus: "notification",
 					Action:             "active",
@@ -87,8 +87,8 @@ func SelectVote(playerState *types.PlayerState, game *types.GamePrivate, vote bo
 			}
 
 		} else {
-			playerState.CardFlingerState = []types.CardFlingerState{
-				types.CardFlingerState{
+			playerState.CardFlingerState = []types.CardFlinger{
+				types.CardFlinger{
 					Position:           "middle-left",
 					NotificationStatus: "notification",
 					Action:             "active",
@@ -98,7 +98,7 @@ func SelectVote(playerState *types.PlayerState, game *types.GamePrivate, vote bo
 						CardBack:  "ja",
 					},
 				},
-				types.CardFlingerState{
+				types.CardFlinger{
 					Position:           "middle-right",
 					NotificationStatus: notificationStatus,
 					Action:             "active",
@@ -139,7 +139,7 @@ func SelectVote(playerState *types.PlayerState, game *types.GamePrivate, vote bo
 
 			time.AfterFunc(200*time.Millisecond, func() {
 				for i := range game.SeatedPlayers {
-					game.SeatedPlayers[i].CardFlingerState = []types.CardFlingerState{}
+					game.SeatedPlayers[i].CardFlingerState = []types.CardFlinger{}
 				}
 
 				SendInProgressGameUpdate(game)
